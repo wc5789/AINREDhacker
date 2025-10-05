@@ -1,1 +1,172 @@
 
+--        弹窗函数
+local function notif(str, dur)
+    game:FindService("StarterGui"):SetCore("SendNotification", {
+        Title = "一路向西",
+        Text = str,
+        Icon = "rbxassetid://2005276185",
+        Duration = dur or 3
+    })
+end
+
+--        配置参数        
+local HITBOX_SIZE = Vector3.new(11, 11, 11)
+local HITBOX_TRANSPARENCY = 0.93
+local LOCAL_PLAYER = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+-- 判断是否为敌人
+local function isEnemy(player)
+    if not LOCAL_PLAYER.Team or not player.Team then
+        return true
+    end
+    return LOCAL_PLAYER.Team ~= player.Team
+end
+
+
+
+
+--        Hitbox + ESP      --
+local function applyHitbox(player)
+    if player == LOCAL_PLAYER then return end
+    local char = player.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not head or not humanoid then return end
+
+    --  扩展 Hitbox
+    head.Size = HITBOX_SIZE
+    head.CanCollide = false
+    head.Massless = true
+    head.Transparency = HITBOX_TRANSPARENCY
+    head.Material = Enum.Material.SmoothPlastic
+    head.BrickColor = BrickColor.new("Institutional white")
+    local mesh = head:FindFirstChildOfClass("SpecialMesh")
+    if mesh then mesh.Scale = Vector3.new(1,1,1) end
+
+    -- 血条 ESP 
+    if not head:FindFirstChild("HealthESP") then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "HealthESP"
+        billboard.Adornee = head
+        billboard.Size = UDim2.new(0, 50, 0, 6)
+        billboard.AlwaysOnTop = true
+        billboard.ExtentsOffset = Vector3.new(0,3.5,0)
+        billboard.Parent = head
+
+        local bg = Instance.new("Frame", billboard)
+        bg.Size = UDim2.new(1,0,1,0)
+        bg.BackgroundColor3 = Color3.fromRGB(50,50,50)
+        bg.BorderSizePixel = 0
+        Instance.new("UICorner", bg).CornerRadius = UDim.new(0,3)
+
+        local hpBar = Instance.new("Frame", bg)
+        hpBar.Size = UDim2.new(1,0,1,0)
+        hpBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+        hpBar.BorderSizePixel = 0
+        Instance.new("UICorner", hpBar).CornerRadius = UDim.new(0,3)
+        Instance.new("UIStroke", hpBar).Color = Color3.fromRGB(100,100,100)
+    end
+
+    -- 名字 + 距离 ESP
+    if not head:FindFirstChild("NameDistanceESP") then
+        local nameBillboard = Instance.new("BillboardGui")
+        nameBillboard.Name = "NameDistanceESP"
+        nameBillboard.Adornee = head
+        nameBillboard.Size = UDim2.new(0, 120, 0, 24)
+        nameBillboard.AlwaysOnTop = true
+        nameBillboard.ExtentsOffset = Vector3.new(0,5,0)
+        nameBillboard.Parent = head
+
+        local nameLabel = Instance.new("TextLabel", nameBillboard)
+        nameLabel.Size = UDim2.new(1,0,1,0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
+        nameLabel.TextStrokeTransparency = 0.3
+        nameLabel.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+        nameLabel.Font = Enum.Font.SourceSansBold
+        nameLabel.TextScaled = false
+        nameLabel.TextSize = 14
+    end
+
+    -- 更新循环(优化) 
+    local lastUpdate = 0
+    local updateInterval = 0.15
+    local updateConn
+    updateConn = RunService.RenderStepped:Connect(function(deltaTime)
+        lastUpdate += deltaTime
+        if lastUpdate >= updateInterval then
+            lastUpdate = 0
+
+            if not char or not head or humanoid.Health <= 0 then
+                if head:FindFirstChild("HealthESP") then head.HealthESP:Destroy() end
+                if head:FindFirstChild("NameDistanceESP") then head.NameDistanceESP:Destroy() end
+                if updateConn then updateConn:Disconnect() end
+                return
+            end
+
+            -- 血量更新
+            if isEnemy(player) then
+                local ratio = humanoid.Health / humanoid.MaxHealth
+                local hpBar = head.HealthESP:FindFirstChildOfClass("Frame"):FindFirstChildOfClass("Frame")
+                if hpBar then
+                    hpBar.Size = UDim2.new(ratio,0,1,0)
+                    if ratio > 0.7 then
+                        hpBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+                    elseif ratio > 0.3 then
+                        hpBar.BackgroundColor3 = Color3.fromRGB(255,255,0)
+                    else
+                        hpBar.BackgroundColor3 = Color3.fromRGB(255,0,0)
+                    end
+                end
+            end
+
+            -- 名字 + 距离更新
+            local distance = (LOCAL_PLAYER.Character.PrimaryPart.Position - head.Position).Magnitude
+            local scale = math.clamp(10/distance,0.5,1.5)
+            local nameLabel = head.NameDistanceESP:FindFirstChildOfClass("TextLabel")
+            if nameLabel then
+                nameLabel.TextSize = 14 * scale
+                nameLabel.Text = string.format("%s | %.1fm", player.Name, distance)
+            end
+        end
+    end)
+
+    humanoid.Died:Connect(function()
+        if head:FindFirstChild("HealthESP") then head.HealthESP:Destroy() end
+        if head:FindFirstChild("NameDistanceESP") then head.NameDistanceESP:Destroy() end
+        if updateConn then updateConn:Disconnect() end
+    end)
+end
+
+
+--   给已有玩家应用 Hitbox
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LOCAL_PLAYER then
+        if player.Character then
+            applyHitbox(player)
+        end
+        player.CharacterAdded:Connect(function()
+            task.wait(1)
+            applyHitbox(player)
+        end)
+    end
+end
+
+--    新玩家加入处理
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LOCAL_PLAYER then
+        player.CharacterAdded:Connect(function()
+            task.wait(1)
+            applyHitbox(player)
+        end)
+    end
+end)
+
+
+--    弹窗   
+notif("加载成功 当你看到这个就能用", 7)
+notif("感谢使用 永久免费 代码开源", 7)
+notif("ESP 信息ESP 头部范围", 13)
