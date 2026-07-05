@@ -71,7 +71,7 @@ function Library:CreateWindow(titleText, accentColor)
         end
     end
 
-    -- 📐 黄金中置尺寸 (490 x 320)
+    -- 📐 刚刚好的中置尺寸 (490 x 320)
     local windowSize = UDim2.new(0, 490, 0, 320)
     local windowCenterPos = UDim2.new(0.5, -245, 0.5, -160)
     
@@ -85,7 +85,7 @@ function Library:CreateWindow(titleText, accentColor)
     MainFrame.Size = floatSize 
     MainFrame.Position = lastFloatPosition
     MainFrame.BackgroundColor3 = Color3.fromRGB(12, 8, 12)
-    MainFrame.BackgroundTransparency = 0.25 -- 高光25%玻璃透感
+    MainFrame.BackgroundTransparency = 0.25 -- 磨砂玻璃透感 (25%透明)
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
     MainFrame.Parent = ScreenGui
@@ -94,7 +94,7 @@ function Library:CreateWindow(titleText, accentColor)
     MainCorner.CornerRadius = UDim.new(0, 23) -- 完美的圆形起步
     MainCorner.Parent = MainFrame
 
-    -- 粉边高亮
+    -- 粉边高亮 (双层粉色描边，增强明显度)
     local MainStroke = Instance.new("UIStroke")
     MainStroke.Color = accentColor
     MainStroke.Thickness = 1.5
@@ -166,7 +166,7 @@ function Library:CreateWindow(titleText, accentColor)
             local morphForward = Animate(MainFrame, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {
                 Size = windowSize,
                 Position = windowCenterPos,
-                BackgroundTransparency = 0.18 -- 展现质感磨砂
+                BackgroundTransparency = 0.2 -- 展现高级磨砂
             })
 
             morphForward.Completed:Connect(function()
@@ -255,20 +255,21 @@ function Library:CreateWindow(titleText, accentColor)
 
     MakeDraggable(TopBar, MainFrame)
 
-    -- 5. 左侧垂直导航栏 SideBar (完美包裹，圆角无缝覆盖)
+    -- 5. 左侧垂直导航栏 SideBar (完美透明，防圆角穿帮)
     local SideBar = Instance.new("Frame")
     SideBar.Name = "SideBar"
     SideBar.Size = UDim2.new(0, 125, 1, -38)
     SideBar.Position = UDim2.new(0, 0, 0, 38)
-    SideBar.BackgroundTransparency = 1 -- 🔴 透明防穿帮
+    SideBar.BackgroundTransparency = 1 
     SideBar.BorderSizePixel = 0
     SideBar.Parent = ContentContainer
 
+    -- 🌸 粉色分层高亮线（更明显，符合要求）
     local SideLine = Instance.new("Frame")
     SideLine.Name = "SideLine"
-    SideLine.Size = UDim2.new(0, 1.5, 1, 0)
-    SideLine.Position = UDim2.new(1, -1.5, 0, 0)
-    SideLine.BackgroundColor3 = Color3.fromRGB(85, 38, 62) -- 明显的分层线条
+    SideLine.Size = UDim2.new(0, 2, 1, 0)
+    SideLine.Position = UDim2.new(1, -2, 0, 0)
+    SideLine.BackgroundColor3 = Color3.fromRGB(110, 42, 75) 
     SideLine.BorderSizePixel = 0
     SideLine.Parent = SideBar
 
@@ -285,7 +286,7 @@ function Library:CreateWindow(titleText, accentColor)
     TabList.Padding = UDim.new(0, 4)
     TabList.Parent = TabContainer
 
-    -- ==================== 📊 底部状态看板 ====================
+    -- ==================== 📊 底部系统状态看板 ====================
     local InfoPanel = Instance.new("Frame")
     InfoPanel.Name = "InfoPanel"
     InfoPanel.Size = UDim2.new(1, -10, 0, 65)
@@ -299,7 +300,7 @@ function Library:CreateWindow(titleText, accentColor)
     InfoCorner.Parent = InfoPanel
 
     local InfoStroke = Instance.new("UIStroke")
-    InfoStroke.Color = Color3.fromRGB(55, 30, 45)
+    InfoStroke.Color = Color3.fromRGB(65, 30, 50)
     InfoStroke.Parent = InfoPanel
 
     local FpsLabel = Instance.new("TextLabel")
@@ -335,7 +336,7 @@ function Library:CreateWindow(titleText, accentColor)
     StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
     StatusLabel.Parent = InfoPanel
 
-    -- FPS 渲染
+    -- 动态计算 FPS
     local frameCount = 0
     local lastTime = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -348,7 +349,7 @@ function Library:CreateWindow(titleText, accentColor)
         end
     end)
 
-    -- 音量侦测
+    -- 动态获取音量
     task.spawn(function()
         while task.wait(2) do
             local success, vol = pcall(function()
@@ -358,7 +359,7 @@ function Library:CreateWindow(titleText, accentColor)
         end
     end)
 
-    -- 6. 右侧内容面板 ContentFrame
+    -- 6. 右侧内容面板 (完全透明包裹，防圆角破损)
     local ContentFrame = Instance.new("Frame")
     ContentFrame.Name = "ContentFrame"
     ContentFrame.Size = UDim2.new(1, -135, 1, -48)
@@ -372,16 +373,24 @@ function Library:CreateWindow(titleText, accentColor)
     function Pages:CreateTab(tabName)
         tabName = tabName or "分类"
 
-        -- 页面容器
+        -- 页面容器 (引入高精度边界防溢出 UIPadding)
         local Page = Instance.new("ScrollingFrame")
         Page.Name = tabName .. "Page"
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.BackgroundTransparency = 1
         Page.CanvasSize = UDim2.new(0, 0, 0, 0)
-        Page.ScrollBarThickness = 2
-        Page.ScrollBarImageColor3 = Color3.fromRGB(80, 40, 60)
+        Page.ScrollBarThickness = 3
+        Page.ScrollBarImageColor3 = Color3.fromRGB(110, 45, 75)
         Page.Visible = false
         Page.Parent = ContentFrame
+
+        -- 🔴 通过 Padding 完美阻止一切溢出和贴边
+        local PagePadding = Instance.new("UIPadding")
+        PagePadding.PaddingLeft = UDim.new(0, 6)
+        PagePadding.PaddingRight = UDim.new(0, 10) -- 给右侧滚动条留位置
+        PagePadding.PaddingTop = UDim.new(0, 6)
+        PagePadding.PaddingBottom = UDim.new(0, 6)
+        PagePadding.Parent = Page
 
         local PageLayout = Instance.new("UIListLayout")
         PageLayout.Padding = UDim.new(0, 6)
@@ -389,7 +398,7 @@ function Library:CreateWindow(titleText, accentColor)
         PageLayout.Parent = Page
 
         PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 10)
+            Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 15)
         end)
 
         -- 侧边栏按钮 TabBtn
@@ -405,7 +414,7 @@ function Library:CreateWindow(titleText, accentColor)
         TabBtn.Parent = TabContainer
 
         local TabCorner = Instance.new("UICorner")
-        TabCorner.CornerRadius = UDim.new(0, 5)
+        TabCorner.CornerRadius = UDim.new(0, 5) -- 规范圆角
         TabCorner.Parent = TabBtn
 
         local BorderMarker = Instance.new("Frame")
@@ -420,7 +429,7 @@ function Library:CreateWindow(titleText, accentColor)
         MarkerCorner.CornerRadius = UDim.new(1, 0)
         MarkerCorner.Parent = BorderMarker
 
-        -- 🌟 极致高光 Tab 切换滑入过渡
+        -- 极高对比度的 Tab 切换滑入
         local function Select()
             for _, child in ipairs(ContentFrame:GetChildren()) do
                 if child:IsA("ScrollingFrame") then child.Visible = false end
@@ -435,10 +444,10 @@ function Library:CreateWindow(titleText, accentColor)
                 end
             end
             
-            -- ⭐ 灵魂滑入动画：由下至上+淡入
+            -- 淡入加滑入
             Page.Visible = true
-            Page.Position = UDim2.new(0, 0, 0, 15) -- 初始下偏
-            Animate(Page, 0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Position = UDim2.new(0, 0, 0, 0)})
+            Page.Position = UDim2.new(0, 0, 0, 15)
+            Animate(Page, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Position = UDim2.new(0, 0, 0, 0)})
             
             Animate(TabBtn, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 0.1, BackgroundColor3 = Color3.fromRGB(36, 20, 30)})
             Animate(BorderMarker, 0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {BackgroundTransparency = 0})
@@ -456,7 +465,7 @@ function Library:CreateWindow(titleText, accentColor)
         -- [[ 1. Premium Label ]]
         function Elements:CreateLabel(labelText)
             local Label = Instance.new("TextLabel")
-            Label.Size = UDim2.new(1, -10, 0, 20)
+            Label.Size = UDim2.new(1, 0, 0, 20) -- 🔴 100% 完美缩进
             Label.BackgroundTransparency = 1
             Label.Text = labelText
             Label.TextColor3 = Color3.fromRGB(175, 155, 168)
@@ -467,12 +476,12 @@ function Library:CreateWindow(titleText, accentColor)
             return Label
         end
 
-        -- [[ 2. Premium Button (微物理震动反馈) ]]
+        -- [[ 2. Premium Button ]]
         function Elements:CreateButton(btnText, callback)
             callback = callback or function() end
 
             local Card = Instance.new("TextButton")
-            Card.Size = UDim2.new(1, -10, 0, 32)
+            Card.Size = UDim2.new(1, 0, 0, 32) -- 🔴 100% 完美缩进
             Card.BackgroundColor3 = Color3.fromRGB(30, 18, 26)
             Card.BackgroundTransparency = 0.35 
             Card.Text = ""
@@ -480,7 +489,7 @@ function Library:CreateWindow(titleText, accentColor)
             Card.Parent = Page
 
             local CardCorner = Instance.new("UICorner")
-            CardCorner.CornerRadius = UDim.new(0, 5)
+            CardCorner.CornerRadius = UDim.new(0, 6) -- 规范圆角 6px
             CardCorner.Parent = Card
 
             local CardStroke = Instance.new("UIStroke")
@@ -505,10 +514,10 @@ function Library:CreateWindow(titleText, accentColor)
                 Animate(CardStroke, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = Color3.fromRGB(55, 30, 48)})
             end)
             Card.MouseButton1Down:Connect(function()
-                Animate(Card, 0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, -14, 0, 30)})
+                Animate(Card, 0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, -4, 0, 30)})
             end)
             Card.MouseButton1Up:Connect(function()
-                Animate(Card, 0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(1, -10, 0, 32)})
+                Animate(Card, 0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(1, 0, 0, 32)})
                 pcall(callback)
             end)
         end
@@ -519,7 +528,7 @@ function Library:CreateWindow(titleText, accentColor)
             callback = callback or function() end
 
             local Card = Instance.new("TextButton")
-            Card.Size = UDim2.new(1, -10, 0, 32)
+            Card.Size = UDim2.new(1, 0, 0, 32) -- 🔴 100% 完美缩进
             Card.BackgroundColor3 = Color3.fromRGB(30, 18, 26)
             Card.BackgroundTransparency = 0.35
             Card.Text = ""
@@ -527,7 +536,7 @@ function Library:CreateWindow(titleText, accentColor)
             Card.Parent = Page
 
             local CardCorner = Instance.new("UICorner")
-            CardCorner.CornerRadius = UDim.new(0, 5)
+            CardCorner.CornerRadius = UDim.new(0, 6) -- 规范圆角 6px
             CardCorner.Parent = Card
 
             local CardStroke = Instance.new("UIStroke")
@@ -545,6 +554,7 @@ function Library:CreateWindow(titleText, accentColor)
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = Card
 
+            -- 高亮滑块
             local Switch = Instance.new("Frame")
             Switch.Size = UDim2.new(0, 32, 0, 16)
             Switch.Position = UDim2.new(1, -42, 0.5, -8)
@@ -552,7 +562,7 @@ function Library:CreateWindow(titleText, accentColor)
             Switch.Parent = Card
 
             local SwitchCorner = Instance.new("UICorner")
-            SwitchCorner.CornerRadius = UDim.new(1, 0)
+            SwitchCorner.CornerRadius = UDim.new(1, 0) -- 完美的圆囊
             SwitchCorner.Parent = Switch
 
             local Dot = Instance.new("Frame")
@@ -569,9 +579,9 @@ function Library:CreateWindow(titleText, accentColor)
                 local targetColor = state and accentColor or Color3.fromRGB(60, 40, 52)
                 local targetPos = state and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
                 
-                -- ⭐ 果冻拉伸弹性（在滑行过程中产生形变）
-                Animate(Dot, 0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(0, 14, 0, 10)})
-                task.delay(0.1, function()
+                -- ⭐ 果冻拉伸弹性（在滑行过程中产生扁平拉伸）
+                Animate(Dot, 0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(0, 14, 0, 9)})
+                task.delay(0.08, function()
                     Animate(Dot, 0.18, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, {Size = UDim2.new(0, 10, 0, 10)})
                 end)
 
@@ -580,10 +590,10 @@ function Library:CreateWindow(titleText, accentColor)
                 
                 if state then
                     Animate(CardStroke, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = accentColor})
-                    Animate(Card, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0.2})
+                    Animate(Card, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundColor3 = Color3.fromRGB(42, 18, 32), BackgroundTransparency = 0.2})
                 else
                     Animate(CardStroke, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = Color3.fromRGB(55, 30, 48)})
-                    Animate(Card, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0.35})
+                    Animate(Card, 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundColor3 = Color3.fromRGB(30, 18, 26), BackgroundTransparency = 0.35})
                 end
                 
                 pcall(callback, state)
@@ -604,7 +614,7 @@ function Library:CreateWindow(titleText, accentColor)
             return {Set = function(_, v) state = v Update() end}
         end
 
-        -- [[ 4. Premium Slider (⭐ 精致液态变形滑块设计) ]]
+        -- [[ 4. Premium Slider (⭐ 酷炫液态膨胀滑块设计) ]]
         function Elements:CreateSlider(sliderText, min, max, default, callback)
             min = min or 0
             max = max or 100
@@ -612,13 +622,13 @@ function Library:CreateWindow(titleText, accentColor)
             callback = callback or function() end
 
             local Card = Instance.new("Frame")
-            Card.Size = UDim2.new(1, -10, 0, 42)
+            Card.Size = UDim2.new(1, 0, 0, 42) -- 🔴 100% 完美缩进
             Card.BackgroundColor3 = Color3.fromRGB(30, 18, 26)
             Card.BackgroundTransparency = 0.35
             Card.Parent = Page
 
             local CardCorner = Instance.new("UICorner")
-            CardCorner.CornerRadius = UDim.new(0, 5)
+            CardCorner.CornerRadius = UDim.new(0, 6) -- 规范圆角 6px
             CardCorner.Parent = Card
 
             local CardStroke = Instance.new("UIStroke")
@@ -647,9 +657,9 @@ function Library:CreateWindow(titleText, accentColor)
             ValLabel.TextXAlignment = Enum.TextXAlignment.Right
             ValLabel.Parent = Card
 
-            -- 隐形/极简滑槽
+            -- 隐形极细滑轨
             local SliderBar = Instance.new("TextButton")
-            SliderBar.Size = UDim2.new(1, -20, 0, 4) -- 默认极细，凸显科技感
+            SliderBar.Size = UDim2.new(1, -20, 0, 4) -- 默认极细
             SliderBar.Position = UDim2.new(0, 10, 0, 26)
             SliderBar.BackgroundColor3 = Color3.fromRGB(60, 40, 52)
             SliderBar.Text = ""
@@ -670,9 +680,9 @@ function Library:CreateWindow(titleText, accentColor)
             FillCorner.CornerRadius = UDim.new(1, 0)
             FillCorner.Parent = Fill
 
-            -- 浮动发光白色指示钮
+            -- 微型高亮指示钮
             local Thumb = Instance.new("Frame")
-            Thumb.Size = UDim2.new(0, 8, 0, 8) -- 极小
+            Thumb.Size = UDim2.new(0, 8, 0, 8) 
             Thumb.AnchorPoint = Vector2.new(0.5, 0.5)
             Thumb.Position = UDim2.new((default - min)/(max - min), 0, 0.5, 0)
             Thumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -687,10 +697,10 @@ function Library:CreateWindow(titleText, accentColor)
             ThumbStroke.Thickness = 1.5
             ThumbStroke.Parent = Thumb
 
-            -- ⭐ 液体式交互膨胀特效
+            -- ⭐ 液体式交互膨胀特效 (极度明显、好用)
             Card.MouseEnter:Connect(function()
-                Animate(SliderBar, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, -20, 0, 6)}) -- 滑槽变粗
-                Animate(Thumb, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(0, 12, 0, 12)}) -- 指示钮膨胀
+                Animate(SliderBar, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, -20, 0, 6)}) -- 滑轨增粗
+                Animate(Thumb, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(0, 12, 0, 12)}) -- 滑块变大并高亮
                 Animate(CardStroke, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = Color3.fromRGB(120, 60, 95)})
             end)
             Card.MouseLeave:Connect(function()
@@ -704,7 +714,7 @@ function Library:CreateWindow(titleText, accentColor)
                 local percentage = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
                 local value = math.floor(min + (max - min) * percentage)
                 
-                -- 顺滑液态跟随
+                -- 液态微移动
                 Animate(Fill, 0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(percentage, 0, 1, 0)})
                 Animate(Thumb, 0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Position = UDim2.new(percentage, 0, 0.5, 0)})
                 
@@ -740,27 +750,26 @@ function Library:CreateWindow(titleText, accentColor)
             end}
         end
 
-        -- [[ 5. Premium TextBox (⭐ 纯净化输入框 - 极简极高大上) ]]
+        -- [[ 5. Premium TextBox (⭐ 纯净化高档输入框 - 全屏高亮聚焦) ]]
         function Elements:CreateInput(placeholder, callback)
-            placeholder = placeholder or "请输入并点击回车..."
+            placeholder = placeholder or "请输入参数并点击回车..."
             callback = callback or function() end
 
-            -- 纯净化输入框卡片 (无标，TextBox 直接占据全容器，超大气)
             local Card = Instance.new("Frame")
-            Card.Size = UDim2.new(1, -10, 0, 32)
+            Card.Size = UDim2.new(1, 0, 0, 32) -- 🔴 100% 完美缩进
             Card.BackgroundColor3 = Color3.fromRGB(30, 18, 26)
             Card.BackgroundTransparency = 0.35
             Card.Parent = Page
 
             local CardCorner = Instance.new("UICorner")
-            CardCorner.CornerRadius = UDim.new(0, 5)
+            CardCorner.CornerRadius = UDim.new(0, 6) -- 规范圆角 6px
             CardCorner.Parent = Card
 
             local CardStroke = Instance.new("UIStroke")
             CardStroke.Color = Color3.fromRGB(55, 30, 48)
             CardStroke.Parent = Card
 
-            -- 全屏包裹 TextBox
+            -- TextBox 纯净无标设计 (极度高级)
             local TextBox = Instance.new("TextBox")
             TextBox.Size = UDim2.new(1, -20, 1, 0)
             TextBox.Position = UDim2.new(0, 10, 0, 0)
@@ -773,13 +782,13 @@ function Library:CreateWindow(titleText, accentColor)
             TextBox.Font = Enum.Font.GothamMedium
             TextBox.Parent = Card
 
-            -- ⭐ 聚焦缩进拟真呼吸效果
+            -- ⭐ 输入聚焦内陷与爆发高光动画 (大厂级细腻动画)
             TextBox.Focused:Connect(function()
-                Animate(Card, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, -14, 0, 30), BackgroundTransparency = 0.2})
+                Animate(Card, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, -6, 0, 30), BackgroundTransparency = 0.2})
                 Animate(CardStroke, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = accentColor})
             end)
             TextBox.FocusLost:Connect(function()
-                Animate(Card, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(1, -10, 0, 32), BackgroundTransparency = 0.35})
+                Animate(Card, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 0.35})
                 Animate(CardStroke, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = Color3.fromRGB(55, 30, 48)})
                 pcall(callback, TextBox.Text)
             end)
@@ -790,20 +799,20 @@ function Library:CreateWindow(titleText, accentColor)
             }
         end
 
-        -- [[ 6. Premium Dropdown (下拉选择条) ]]
+        -- [[ 6. Premium Dropdown ]]
         function Elements:CreateDropdown(dropdownText, options, callback)
             options = options or {}
             callback = callback or function() end
 
             local Card = Instance.new("Frame")
-            Card.Size = UDim2.new(1, -10, 0, 32)
+            Card.Size = UDim2.new(1, 0, 0, 32) -- 🔴 100% 完美缩进
             Card.BackgroundColor3 = Color3.fromRGB(30, 18, 26)
             Card.BackgroundTransparency = 0.35
             Card.ClipsDescendants = true
             Card.Parent = Page
 
             local CardCorner = Instance.new("UICorner")
-            CardCorner.CornerRadius = UDim.new(0, 5)
+            CardCorner.CornerRadius = UDim.new(0, 6) -- 规范圆角 6px
             CardCorner.Parent = Card
 
             local CardStroke = Instance.new("UIStroke")
@@ -851,7 +860,7 @@ function Library:CreateWindow(titleText, accentColor)
             local function Toggle()
                 open = not open
                 local targetHeight = open and (38 + OptionList.AbsoluteContentSize.Y) or 32
-                Animate(Card, 0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(1, -10, 0, targetHeight)})
+                Animate(Card, 0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Size = UDim2.new(1, 0, 0, targetHeight)})
                 Animate(Arrow, 0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Rotation = open and 180 or 0})
             end
 
