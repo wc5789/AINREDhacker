@@ -1,10 +1,13 @@
--- [[ Operit Neon Pink Morphing Star & Thick Slider UI Library ]] --
+-- [[ Operit Neon Star & Custom Font Glassmorphism UI Library ]] --
 local Library = {}
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
+-- 默认字体配置：Builder Sans (Roblox 最新高档中英文适配字体)
+Library.CurrentFont = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
 
 -- 获取最佳 GUI 父级
 local function GetGuiParent()
@@ -21,6 +24,14 @@ local function Animate(obj, duration, style, dir, properties)
     local tween = TweenService:Create(obj, info, properties)
     tween:Play()
     return tween
+end
+
+-- 统一字体更新引擎 (安全应用字体)
+local function ApplyFont(textLabel, weight)
+    weight = weight or Enum.FontWeight.Bold
+    pcall(function()
+        textLabel.FontFace = Font.new(Library.CurrentFont.Family, weight, Enum.FontStyle.Normal)
+    end)
 end
 
 -- 拖拽机制封装
@@ -53,7 +64,7 @@ local function MakeDraggable(dragFrame, targetFrame)
     end)
 end
 
--- ==================== 🌸 独家：毛玻璃弹窗通知系统 (Toast Notification) ====================
+-- ==================== 📊 独家：毛玻璃侧滑弹窗通知系统 (Compact Toasts) ====================
 local NotificationGui = nil
 local function CreateNotificationContainer()
     if NotificationGui then return NotificationGui end
@@ -65,13 +76,13 @@ local function CreateNotificationContainer()
 
     local FrameList = Instance.new("Frame")
     FrameList.Name = "FrameList"
-    FrameList.Size = UDim2.new(0, 250, 1, -40)
-    FrameList.Position = UDim2.new(1, -260, 0, 20)
+    FrameList.Size = UDim2.new(0, 200, 1, -40) -- 精致窄版容器
+    FrameList.Position = UDim2.new(1, -210, 0, 20)
     FrameList.BackgroundTransparency = 1
     FrameList.Parent = NotificationGui
 
     local ListLayout = Instance.new("UIListLayout")
-    ListLayout.Padding = UDim.new(0, 8)
+    ListLayout.Padding = UDim.new(0, 6)
     ListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
     ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
     ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -82,75 +93,71 @@ end
 
 function Library:Notify(titleText, descText, duration)
     titleText = titleText or "SYSTEM"
-    descText = descText or "操作成功！"
-    duration = duration or 3.5
+    descText = descText or "操作成功"
+    duration = duration or 3
 
     local container = CreateNotificationContainer()
     local listFrame = container.FrameList
 
-    local Toast = Instance.new("Frame")
+    -- 采用 CanvasGroup，方便做完美的渐渐显示淡入动画
+    local Toast = Instance.new("CanvasGroup")
     Toast.Name = "Toast"
-    Toast.Size = UDim2.new(1, 0, 0, 58)
+    Toast.Size = UDim2.new(1, 0, 0, 42) -- 极其精致小巧的尺寸，不挡屏幕
     Toast.BackgroundColor3 = Color3.fromRGB(15, 10, 15)
-    Toast.BackgroundTransparency = 0.2 -- 完美的弹窗毛玻璃高透
+    Toast.GroupTransparency = 1 -- 初始完全透明
     Toast.BorderSizePixel = 0
     Toast.Parent = listFrame
 
     local ToastCorner = Instance.new("UICorner")
-    ToastCorner.CornerRadius = UDim.new(0, 6)
+    ToastCorner.CornerRadius = UDim.new(0, 5)
     ToastCorner.Parent = Toast
 
     local ToastStroke = Instance.new("UIStroke")
-    ToastStroke.Color = Color3.fromRGB(254, 74, 161) -- 魅影粉
+    ToastStroke.Color = Color3.fromRGB(254, 74, 161) -- 霓虹魅影粉
     ToastStroke.Thickness = 1.2
     ToastStroke.Parent = Toast
 
-    -- 标题
     local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, -20, 0, 22)
-    Title.Position = UDim2.new(0, 10, 0, 6)
+    Title.Size = UDim2.new(1, -16, 0, 18)
+    Title.Position = UDim2.new(0, 8, 0, 3)
     Title.BackgroundTransparency = 1
     Title.Text = titleText:upper()
     Title.TextColor3 = Color3.fromRGB(254, 74, 161)
-    Title.TextSize = 11
-    Title.Font = Enum.Font.MontserratBold
+    Title.TextSize = 10
+    ApplyFont(Title, Enum.FontWeight.Bold)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = Toast
 
-    -- 描述内容
     local Desc = Instance.new("TextLabel")
-    Desc.Size = UDim2.new(1, -20, 0, 24)
-    Desc.Position = UDim2.new(0, 10, 0, 24)
+    Desc.Size = UDim2.new(1, -16, 0, 18)
+    Desc.Position = UDim2.new(0, 8, 0, 19)
     Desc.BackgroundTransparency = 1
     Desc.Text = descText
-    Desc.TextColor3 = Color3.fromRGB(240, 230, 235)
-    Desc.TextSize = 10
-    Desc.Font = Enum.Font.GothamMedium
+    Desc.TextColor3 = Color3.fromRGB(235, 220, 230)
+    Desc.TextSize = 9
+    ApplyFont(Desc, Enum.FontWeight.Medium)
     Desc.TextXAlignment = Enum.TextXAlignment.Left
     Desc.Parent = Toast
 
-    -- 读条倒计时线 (极富动感)
+    -- 进度条
     local ProgressBar = Instance.new("Frame")
-    ProgressBar.Size = UDim2.new(1, 0, 0, 2)
-    ProgressBar.Position = UDim2.new(0, 0, 1, -2)
+    ProgressBar.Size = UDim2.new(1, 0, 0, 1.5)
+    ProgressBar.Position = UDim2.new(0, 0, 1, -1.5)
     ProgressBar.BackgroundColor3 = Color3.fromRGB(254, 74, 161)
     ProgressBar.BorderSizePixel = 0
     ProgressBar.Parent = Toast
 
-    local ProgressCorner = Instance.new("UICorner")
-    ProgressCorner.CornerRadius = UDim.new(1, 0)
-    ProgressCorner.Parent = ProgressBar
+    -- 🌟 1. 【渐渐显示】淡入动画
+    Toast.Position = UDim2.new(0, 0, 0, 0) -- 原位不动
+    Animate(Toast, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {GroupTransparency = 0}) -- 渐渐显示出来
+    Animate(ProgressBar, duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, {Size = UDim2.new(0, 0, 0, 1.5)})
 
-    -- 入场弹性滑动动画
-    Toast.Position = UDim2.new(1.5, 0, 0, 0)
-    Animate(Toast, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {Position = UDim2.new(0, 0, 0, 0)})
-    Animate(ProgressBar, duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, {Size = UDim2.new(0, 0, 0, 2)})
-
-    -- 计时销毁
+    -- 🌟 2. 【左右往回拉】收回关闭动画
     task.delay(duration, function()
-        local slideOut = Animate(Toast, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {
-            Position = UDim2.new(1.5, 0, 0, 0),
-            BackgroundTransparency = 1
+        -- 弹性向右侧往回拉并滑走
+        local slideOut = Animate(Toast, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.In, {
+            Position = UDim2.new(1.3, 0, 0, 0), -- 往回拉
+            GroupTransparency = 1
         })
         slideOut.Completed:Connect(function()
             Toast:Destroy()
@@ -158,9 +165,35 @@ function Library:Notify(titleText, descText, duration)
     end)
 end
 
+-- ==================== 🌸 自定义云端字体配置 ====================
+function Library:SetCustomFont(fontAssetId)
+    local success, customFont = pcall(function()
+        if typeof(fontAssetId) == "number" then
+            return Font.fromId(fontAssetId)
+        else
+            return Font.new(fontAssetId, Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+        end
+    end)
+    if success and customFont then
+        Library.CurrentFont = customFont
+        -- 全局刷新当前存在的UI字体
+        for _, gui in ipairs(GetGuiParent():GetChildren()) do
+            if gui.Name:match("^OperitMorph_") or gui.Name == "OperitNotifications" then
+                for _, desc in ipairs(gui:GetDescendants()) do
+                    if desc:IsA("TextLabel") or desc:IsA("TextButton") or desc:IsA("TextBox") then
+                        ApplyFont(desc, desc.Font == Enum.Font.GothamBold and Enum.FontWeight.Bold or Enum.FontWeight.Medium)
+                    end
+                end
+            end
+        end
+    else
+        warn("字体加载失败，已应用默认高档字体。")
+    end
+end
+
 function Library:CreateWindow(titleText, accentColor)
     titleText = titleText or "OPERIT V3"
-    accentColor = accentColor or Color3.fromRGB(254, 74, 161) -- 魅影粉
+    accentColor = accentColor or Color3.fromRGB(254, 74, 161) -- 魅影霓虹粉
     
     -- 1. 创建顶层 ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
@@ -180,7 +213,6 @@ function Library:CreateWindow(titleText, accentColor)
     local windowSize = UDim2.new(0, 490, 0, 320)
     local windowCenterPos = UDim2.new(0.5, -245, 0.5, -160)
     
-    -- 🔴 悬浮状态初始设定
     local floatSize = UDim2.new(0, 46, 0, 46)
     local lastFloatPosition = UDim2.new(0.9, -10, 0.2, 0)
 
@@ -190,7 +222,7 @@ function Library:CreateWindow(titleText, accentColor)
     MainFrame.Size = floatSize 
     MainFrame.Position = lastFloatPosition
     MainFrame.BackgroundColor3 = Color3.fromRGB(12, 8, 12)
-    MainFrame.BackgroundTransparency = 0.25 -- 磨砂玻璃透感 (25%透明)
+    MainFrame.BackgroundTransparency = 1 -- 悬浮球状态时容器完全透明，只露出星体
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
     MainFrame.Parent = ScreenGui
@@ -199,10 +231,9 @@ function Library:CreateWindow(titleText, accentColor)
     MainCorner.CornerRadius = UDim.new(0, 23) -- 完美的圆形起步
     MainCorner.Parent = MainFrame
 
-    -- 粉边高亮 (双层粉色描边，增强明显度)
     local MainStroke = Instance.new("UIStroke")
     MainStroke.Color = accentColor
-    MainStroke.Thickness = 1.5
+    MainStroke.Thickness = 0 -- 悬浮时描边隐藏，只显示星星的描边
     MainStroke.Parent = MainFrame
 
     local MainGradient = Instance.new("UIGradient")
@@ -213,30 +244,29 @@ function Library:CreateWindow(titleText, accentColor)
     MainGradient.Rotation = 45
     MainGradient.Parent = MainFrame
 
-    -- ⭐ 旋转星核 (FloatIcon) - 改为星状且全自动匀速自转
+    -- ⭐ 旋转星核 (FloatIcon) - 真正无限自转的璀璨五角星
     local FloatIcon = Instance.new("TextLabel")
     FloatIcon.Name = "FloatIcon"
     FloatIcon.Size = UDim2.new(1, 0, 1, 0)
     FloatIcon.BackgroundTransparency = 1
-    FloatIcon.Text = "✦" -- 高级现代科技四芒星
-    FloatIcon.TextSize = 28
+    FloatIcon.Text = "★" -- 奢华五角星形状
+    FloatIcon.TextSize = 36
     FloatIcon.TextColor3 = accentColor
     FloatIcon.Font = Enum.Font.GothamBold
     FloatIcon.Visible = true
     FloatIcon.Parent = MainFrame
 
-    -- 星核霓虹粉柔光发光效果 (通过UIStroke实现文本粗发光)
     local IconStroke = Instance.new("UIStroke")
     IconStroke.Color = Color3.fromRGB(255, 255, 255)
-    IconStroke.Thickness = 1
+    IconStroke.Thickness = 1.2
     IconStroke.Parent = FloatIcon
 
-    -- 自转物理动力线程
+    -- 自转物理线程
     local rotationConnection
     local function StartRotation()
         if rotationConnection then rotationConnection:Disconnect() end
         rotationConnection = RunService.RenderStepped:Connect(function(delta)
-            FloatIcon.Rotation = (FloatIcon.Rotation + 120 * delta) % 360 -- 每秒匀速旋转 120 度
+            FloatIcon.Rotation = (FloatIcon.Rotation + 140 * delta) % 360 -- 每秒旋转 140 度
         end)
     end
     StartRotation()
@@ -252,44 +282,47 @@ function Library:CreateWindow(titleText, accentColor)
     local isMinimized = true
     local animating = false
 
-    -- 3. ⭐ 星核 ➔ 主窗口 变形动画
+    -- 3. 终极一键自转星体 ➔ 长方形主窗口 变形动画
     local function ToggleUI()
         if animating then return end
         animating = true
         isMinimized = not isMinimized
 
         if isMinimized then
-            -- 【主窗口 ➔ 旋转星核】
+            -- 【长方形 ➔ 自转星体】
             ContentContainer.Visible = false
+            MainStroke.Thickness = 0
             
             Animate(MainCorner, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.In, {CornerRadius = UDim.new(0, 23)})
             local morphBack = Animate(MainFrame, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.In, {
                 Size = floatSize,
                 Position = lastFloatPosition,
-                BackgroundTransparency = 0.25
+                BackgroundTransparency = 1
             })
 
             morphBack.Completed:Connect(function()
                 FloatIcon.Visible = true
                 FloatIcon.TextTransparency = 1
                 Animate(FloatIcon, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {TextTransparency = 0})
-                StartRotation() -- 重新开启自转线程
+                StartRotation() -- 开启无限自转
                 animating = false
             end)
         else
-            -- 【旋转星核 ➔ 主窗口】
+            -- 【自转星体 ➔ 长方形】
             lastFloatPosition = MainFrame.Position
-            if rotationConnection then rotationConnection:Disconnect() end -- 关闭自转线程，准备变成长方形
+            if rotationConnection then rotationConnection:Disconnect() end -- 解除自转
             
-            Animate(FloatIcon, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {TextTransparency = 1})
+            -- 星体爆发动画
+            Animate(FloatIcon, 0.15, Enum.EasingStyle.Back, Enum.EasingDirection.In, {TextTransparency = 1, Rotation = FloatIcon.Rotation + 90})
             task.wait(0.1)
             FloatIcon.Visible = false
 
+            MainStroke.Thickness = 1.5
             Animate(MainCorner, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {CornerRadius = UDim.new(0, 10)})
             local morphForward = Animate(MainFrame, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {
                 Size = windowSize,
                 Position = windowCenterPos,
-                BackgroundTransparency = 0.2 -- 磨砂透感
+                BackgroundTransparency = 0.2 -- 20% 通透度
             })
 
             morphForward.Completed:Connect(function()
@@ -299,7 +332,7 @@ function Library:CreateWindow(titleText, accentColor)
         end
     end
 
-    -- 悬浮球拖动及点击事件
+    -- 星星点击检测
     local dragThreshold = 6
     local clickStart
     MainFrame.InputBegan:Connect(function(input)
@@ -349,7 +382,7 @@ function Library:CreateWindow(titleText, accentColor)
     Title.Text = titleText:upper()
     Title.TextColor3 = Color3.fromRGB(255, 235, 245)
     Title.TextSize = 12
-    Title.Font = Enum.Font.MontserratBold
+    ApplyFont(Title, Enum.FontWeight.Bold)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = TopBar
 
@@ -361,7 +394,7 @@ function Library:CreateWindow(titleText, accentColor)
     MinimizeBtn.Text = "—"
     MinimizeBtn.TextColor3 = Color3.fromRGB(160, 140, 150)
     MinimizeBtn.TextSize = 11
-    MinimizeBtn.Font = Enum.Font.GothamBold
+    ApplyFont(MinimizeBtn, Enum.FontWeight.Bold)
     MinimizeBtn.Parent = TopBar
     MinimizeBtn.MouseButton1Click:Connect(ToggleUI)
 
@@ -372,13 +405,13 @@ function Library:CreateWindow(titleText, accentColor)
     CloseBtn.Text = "×"
     CloseBtn.TextColor3 = Color3.fromRGB(160, 140, 150)
     CloseBtn.TextSize = 18
-    CloseBtn.Font = Enum.Font.GothamMedium
+    ApplyFont(CloseBtn, Enum.FontWeight.Medium)
     CloseBtn.Parent = TopBar
     CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
     MakeDraggable(TopBar, MainFrame)
 
-    -- 5. 左侧垂直导航栏 SideBar (完全透明，圆角无漏洞)
+    -- 5. 左侧垂直导航栏 SideBar
     local SideBar = Instance.new("Frame")
     SideBar.Name = "SideBar"
     SideBar.Size = UDim2.new(0, 125, 1, -38)
@@ -408,7 +441,7 @@ function Library:CreateWindow(titleText, accentColor)
     TabList.Padding = UDim.new(0, 4)
     TabList.Parent = TabContainer
 
-    -- ==================== 📊 底部系统状态看板 ====================
+    -- ==================== 📊 底部状态栏 ====================
     local InfoPanel = Instance.new("Frame")
     InfoPanel.Name = "InfoPanel"
     InfoPanel.Size = UDim2.new(1, -10, 0, 65)
@@ -432,7 +465,7 @@ function Library:CreateWindow(titleText, accentColor)
     FpsLabel.Text = "游戏帧数: 0 帧"
     FpsLabel.TextColor3 = Color3.fromRGB(200, 175, 190)
     FpsLabel.TextSize = 10
-    FpsLabel.Font = Enum.Font.GothamBold
+    ApplyFont(FpsLabel, Enum.FontWeight.Bold)
     FpsLabel.TextXAlignment = Enum.TextXAlignment.Left
     FpsLabel.Parent = InfoPanel
 
@@ -443,7 +476,7 @@ function Library:CreateWindow(titleText, accentColor)
     VolLabel.Text = "游戏音量: 100%"
     VolLabel.TextColor3 = Color3.fromRGB(200, 175, 190)
     VolLabel.TextSize = 10
-    VolLabel.Font = Enum.Font.GothamBold
+    ApplyFont(VolLabel, Enum.FontWeight.Bold)
     VolLabel.TextXAlignment = Enum.TextXAlignment.Left
     VolLabel.Parent = InfoPanel
 
@@ -454,7 +487,7 @@ function Library:CreateWindow(titleText, accentColor)
     StatusLabel.Text = "系统状态: 稳定运行"
     StatusLabel.TextColor3 = Color3.fromRGB(254, 74, 161)
     StatusLabel.TextSize = 9
-    StatusLabel.Font = Enum.Font.GothamBold
+    ApplyFont(StatusLabel, Enum.FontWeight.Bold)
     StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
     StatusLabel.Parent = InfoPanel
 
@@ -481,7 +514,7 @@ function Library:CreateWindow(titleText, accentColor)
         end
     end)
 
-    -- 6. 右侧内容面板 ContentFrame
+    -- 6. 右侧内容面板
     local ContentFrame = Instance.new("Frame")
     ContentFrame.Name = "ContentFrame"
     ContentFrame.Size = UDim2.new(1, -135, 1, -48)
@@ -495,7 +528,7 @@ function Library:CreateWindow(titleText, accentColor)
     function Pages:CreateTab(tabName)
         tabName = tabName or "分类"
 
-        -- 页面容器
+        -- 页面容器 (高精防溢出 UIPadding)
         local Page = Instance.new("ScrollingFrame")
         Page.Name = tabName .. "Page"
         Page.Size = UDim2.new(1, 0, 1, 0)
@@ -522,7 +555,7 @@ function Library:CreateWindow(titleText, accentColor)
             Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 15)
         end)
 
-        -- 侧边栏按钮 TabBtn
+        -- 侧边栏切换按钮
         local TabBtn = Instance.new("TextButton")
         TabBtn.Size = UDim2.new(1, -4, 0, 28)
         TabBtn.BackgroundColor3 = Color3.fromRGB(36, 20, 30)
@@ -530,12 +563,12 @@ function Library:CreateWindow(titleText, accentColor)
         TabBtn.Text = "   " .. tabName
         TabBtn.TextColor3 = Color3.fromRGB(150, 135, 145)
         TabBtn.TextSize = 11
-        TabBtn.Font = Enum.Font.GothamBold
+        ApplyFont(TabBtn, Enum.FontWeight.Bold)
         TabBtn.TextXAlignment = Enum.TextXAlignment.Left
         TabBtn.Parent = TabContainer
 
         local TabCorner = Instance.new("UICorner")
-        TabCorner.CornerRadius = UDim.new(0, 5) 
+        TabCorner.CornerRadius = UDim.new(0, 5)
         TabCorner.Parent = TabBtn
 
         local BorderMarker = Instance.new("Frame")
@@ -550,7 +583,6 @@ function Library:CreateWindow(titleText, accentColor)
         MarkerCorner.CornerRadius = UDim.new(1, 0)
         MarkerCorner.Parent = BorderMarker
 
-        -- 极高对比度的 Tab 切换
         local function Select()
             for _, child in ipairs(ContentFrame:GetChildren()) do
                 if child:IsA("ScrollingFrame") then child.Visible = false end
@@ -565,7 +597,7 @@ function Library:CreateWindow(titleText, accentColor)
                 end
             end
             
-            -- 淡入滑入效果
+            -- 平滑滑入+淡入
             Page.Visible = true
             Page.Position = UDim2.new(0, 0, 0, 15)
             Animate(Page, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Position = UDim2.new(0, 0, 0, 0)})
@@ -583,7 +615,7 @@ function Library:CreateWindow(titleText, accentColor)
 
         local Elements = {}
 
-        -- [[ 1. Label ]]
+        -- [[ 1. Premium Label ]]
         function Elements:CreateLabel(labelText)
             local Label = Instance.new("TextLabel")
             Label.Size = UDim2.new(1, 0, 0, 20)
@@ -591,13 +623,13 @@ function Library:CreateWindow(titleText, accentColor)
             Label.Text = labelText
             Label.TextColor3 = Color3.fromRGB(175, 155, 168)
             Label.TextSize = 11
-            Label.Font = Enum.Font.GothamMedium
+            ApplyFont(Label, Enum.FontWeight.Medium)
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = Page
             return Label
         end
 
-        -- [[ 2. Premium Button (微物理震动) ]]
+        -- [[ 2. Premium Button ]]
         function Elements:CreateButton(btnText, callback)
             callback = callback or function() end
 
@@ -623,7 +655,7 @@ function Library:CreateWindow(titleText, accentColor)
             Label.Text = btnText
             Label.TextColor3 = Color3.fromRGB(245, 220, 235)
             Label.TextSize = 11
-            Label.Font = Enum.Font.GothamBold
+            ApplyFont(Label, Enum.FontWeight.Bold)
             Label.Parent = Card
 
             Card.MouseEnter:Connect(function()
@@ -643,7 +675,7 @@ function Library:CreateWindow(titleText, accentColor)
             end)
         end
 
-        -- [[ 3. Premium Toggle (果冻果冻弹性开关) ]]
+        -- [[ 3. Premium Toggle ]]
         function Elements:CreateToggle(toggleText, default, callback)
             local state = default or false
             callback = callback or function() end
@@ -671,7 +703,7 @@ function Library:CreateWindow(titleText, accentColor)
             Label.Text = toggleText
             Label.TextColor3 = Color3.fromRGB(220, 200, 212)
             Label.TextSize = 11
-            Label.Font = Enum.Font.GothamBold
+            ApplyFont(Label, Enum.FontWeight.Bold)
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = Card
 
@@ -699,7 +731,7 @@ function Library:CreateWindow(titleText, accentColor)
                 local targetColor = state and accentColor or Color3.fromRGB(60, 40, 52)
                 local targetPos = state and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
                 
-                -- ⭐ 果冻在滑行中产生拉伸再回弹
+                -- 果冻在滑行中产生拉伸再回弹
                 Animate(Dot, 0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(0, 14, 0, 9)})
                 task.delay(0.08, function()
                     Animate(Dot, 0.18, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, {Size = UDim2.new(0, 10, 0, 10)})
@@ -734,14 +766,14 @@ function Library:CreateWindow(titleText, accentColor)
             return {Set = function(_, v) state = v Update() end}
         end
 
-        -- [[ 4. Premium Thick Slider (⭐ 独家重构：iOS/macOS 式拟真高档音量粗卡片) ]]
+        -- [[ 4. Premium Thick Slider (⭐ iOS / macOS 拟真音量粗拉条卡片) ]]
         function Elements:CreateSlider(sliderText, min, max, default, callback)
             min = min or 0
             max = max or 100
             default = default or min
             callback = callback or function() end
 
-            -- 28px 深度的一体化粗卡片 (iOS 控制中心音量拉条范式)
+            -- 28px 深度的一体化粗卡片
             local Card = Instance.new("Frame")
             Card.Size = UDim2.new(1, 0, 0, 28) 
             Card.BackgroundColor3 = Color3.fromRGB(30, 18, 26)
@@ -756,11 +788,11 @@ function Library:CreateWindow(titleText, accentColor)
             CardStroke.Color = Color3.fromRGB(55, 30, 48)
             CardStroke.Parent = Card
 
-            -- 液态填充进度条 (完全包裹卡片内部，实现高档填充感)
+            -- 液态填充进度条
             local Fill = Instance.new("Frame")
             Fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
             Fill.BackgroundColor3 = accentColor
-            Fill.BackgroundTransparency = 0.65 -- 透亮高洁的胶囊内部液态粉
+            Fill.BackgroundTransparency = 0.65 -- 透亮液态填充
             Fill.BorderSizePixel = 0
             Fill.Parent = Card
 
@@ -768,7 +800,7 @@ function Library:CreateWindow(titleText, accentColor)
             FillCorner.CornerRadius = UDim.new(0, 6)
             FillCorner.Parent = Fill
 
-            -- 纯粉色的液态边缘高亮亮条 (滑轨指尖灯效)
+            -- 边缘亮条
             local FillEdge = Instance.new("Frame")
             FillEdge.Size = UDim2.new(0, 2, 1, 0)
             FillEdge.Position = UDim2.new(1, -2, 0, 0)
@@ -776,7 +808,7 @@ function Library:CreateWindow(titleText, accentColor)
             FillEdge.BorderSizePixel = 0
             FillEdge.Parent = Fill
 
-            -- 把数值和文本嵌入在拉条最上层，融为一体
+            -- 数值和文本嵌入在拉条内部
             local Label = Instance.new("TextLabel")
             Label.Size = UDim2.new(1, -80, 1, 0)
             Label.Position = UDim2.new(0, 12, 0, 0)
@@ -785,23 +817,22 @@ function Library:CreateWindow(titleText, accentColor)
             Label.Text = sliderText:upper()
             Label.TextColor3 = Color3.fromRGB(255, 240, 248)
             Label.TextSize = 10
-            Label.Font = Enum.Font.MontserratBold
+            ApplyFont(Label, Enum.FontWeight.Bold)
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = Card
 
             local ValLabel = Instance.new("TextLabel")
             ValLabel.Size = UDim2.new(0, 60, 1, 0)
-            ValLabel.Position = UDim2.new(1, -72, 0, 0)
+            ValLabel.Position = UDim2.new(1, -12, 0, 0)
             ValLabel.BackgroundTransparency = 1
             ValLabel.ZIndex = 3
             ValLabel.Text = tostring(default)
             ValLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
             ValLabel.TextSize = 10
-            ValLabel.Font = Enum.Font.MontserratBold
+            ApplyFont(ValLabel, Enum.FontWeight.Bold)
             ValLabel.TextXAlignment = Enum.TextXAlignment.Right
             ValLabel.Parent = Card
 
-            -- 鼠标移入让卡片产生液体变粗发光的动画
             Card.MouseEnter:Connect(function()
                 Animate(Card, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, 0, 0, 31)}) -- 稍微膨胀变粗
                 Animate(CardStroke, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = accentColor})
@@ -813,7 +844,7 @@ function Library:CreateWindow(titleText, accentColor)
                 Animate(Fill, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0.65})
             end)
 
-            -- 拖动机制
+            -- 拖动
             local dragging = false
             local function Update(input)
                 local percentage = math.clamp((input.Position.X - Card.AbsolutePosition.X) / Card.AbsoluteSize.X, 0, 1)
@@ -851,9 +882,9 @@ function Library:CreateWindow(titleText, accentColor)
             end}
         end
 
-        -- [[ 5. Premium TextBox (纯净化无多余标识输入框) ]]
+        -- [[ 5. Premium TextBox (⭐ 极简无标输入框 - 支持内陷呼吸) ]]
         function Elements:CreateInput(placeholder, callback)
-            placeholder = placeholder or "请输入并敲击回车确认..."
+            placeholder = placeholder or "请输入参数并点击回车..."
             callback = callback or function() end
 
             local Card = Instance.new("Frame")
@@ -879,9 +910,10 @@ function Library:CreateWindow(titleText, accentColor)
             TextBox.Text = ""
             TextBox.TextColor3 = Color3.fromRGB(255, 235, 245)
             TextBox.TextSize = 11
-            TextBox.Font = Enum.Font.GothamMedium
+            ApplyFont(TextBox, Enum.FontWeight.Medium)
             TextBox.Parent = Card
 
+            -- 聚焦呼吸
             TextBox.Focused:Connect(function()
                 Animate(Card, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = UDim2.new(1, -6, 0, 30), BackgroundTransparency = 0.2})
                 Animate(CardStroke, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Color = accentColor})
@@ -931,7 +963,7 @@ function Library:CreateWindow(titleText, accentColor)
             Label.Text = dropdownText
             Label.TextColor3 = Color3.fromRGB(220, 200, 212)
             Label.TextSize = 11
-            Label.Font = Enum.Font.GothamBold
+            ApplyFont(Label, Enum.FontWeight.Bold)
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = ClickBtn
 
@@ -942,7 +974,7 @@ function Library:CreateWindow(titleText, accentColor)
             Arrow.Text = "▼"
             Arrow.TextColor3 = Color3.fromRGB(160, 140, 150)
             Arrow.TextSize = 10
-            Arrow.Font = Enum.Font.GothamMedium
+            ApplyFont(Arrow, Enum.FontWeight.Medium)
             Arrow.Parent = ClickBtn
 
             local OptionContainer = Instance.new("Frame")
@@ -976,7 +1008,7 @@ function Library:CreateWindow(titleText, accentColor)
                     OptBtn.Text = "  " .. name
                     OptBtn.TextColor3 = Color3.fromRGB(190, 170, 182)
                     OptBtn.TextSize = 10
-                    OptBtn.Font = Enum.Font.GothamMedium
+                    ApplyFont(OptBtn, Enum.FontWeight.Medium)
                     OptBtn.TextXAlignment = Enum.TextXAlignment.Left
                     OptBtn.Parent = OptionContainer
 
