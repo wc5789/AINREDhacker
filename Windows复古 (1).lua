@@ -3,10 +3,6 @@ local UserInputService = game:GetService("UserInputService")
 
 local Windows = {}
 
--- 默认复古字体：Fixedsys (极其经典的 Win98 像素字体)
-local RETRO_FONT = Enum.Font.Fixedsys
-local RETRO_FONT_BOLD = Enum.Font.SourceSansBold -- 标题栏或加粗用，更清晰易读
-
 -- =============================================================================
 -- 辅助函数：Win98 经典 3D 凸起/凹陷边框
 -- =============================================================================
@@ -113,7 +109,6 @@ local function createSingleElement(el, parent, layoutOrder)
 		section.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
 		section.BorderSizePixel = 0
 		section.Text = "  " .. el.text
-		section.Font = RETRO_FONT_BOLD
 		section.TextColor3 = Color3.fromRGB(255, 255, 255)
 		section.TextSize = 13
 		section.TextXAlignment = Enum.TextXAlignment.Left
@@ -127,7 +122,6 @@ local function createSingleElement(el, parent, layoutOrder)
 		btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 		btn.BorderSizePixel = 0
 		btn.Text = el.text or "Button"
-		btn.Font = RETRO_FONT
 		btn.TextColor3 = Color3.fromRGB(0, 0, 0)
 		btn.TextSize = 14
 		btn.AutoButtonColor = false
@@ -163,7 +157,6 @@ local function createSingleElement(el, parent, layoutOrder)
 		checkMark.BackgroundTransparency = 1
 		checkMark.Text = "✓"
 		checkMark.TextColor3 = Color3.fromRGB(0, 0, 0)
-		checkMark.Font = RETRO_FONT_BOLD
 		checkMark.TextSize = 12
 		checkMark.Visible = el.default or false
 		checkMark.Parent = checkbox
@@ -173,7 +166,6 @@ local function createSingleElement(el, parent, layoutOrder)
 		label.Position = UDim2.new(0, 22, 0, 0)
 		label.BackgroundTransparency = 1
 		label.Text = el.text or "Checkbox"
-		label.Font = RETRO_FONT
 		label.TextColor3 = Color3.fromRGB(0, 0, 0)
 		label.TextSize = 14
 		label.TextXAlignment = Enum.TextXAlignment.Left
@@ -210,7 +202,6 @@ local function createSingleElement(el, parent, layoutOrder)
 		label.Size = UDim2.new(1, 0, 0, 14)
 		label.BackgroundTransparency = 1
 		label.Text = (el.text or "Slider") .. ": " .. tostring(currentVal)
-		label.Font = RETRO_FONT
 		label.TextColor3 = Color3.fromRGB(0, 0, 0)
 		label.TextSize = 14
 		label.TextXAlignment = Enum.TextXAlignment.Left
@@ -277,7 +268,6 @@ local function createSingleElement(el, parent, layoutOrder)
 		label.Size = UDim2.new(1, 0, 0, 14)
 		label.BackgroundTransparency = 1
 		label.Text = el.text or "Input"
-		label.Font = RETRO_FONT
 		label.TextColor3 = Color3.fromRGB(0, 0, 0)
 		label.TextSize = 14
 		label.TextXAlignment = Enum.TextXAlignment.Left
@@ -288,7 +278,6 @@ local function createSingleElement(el, parent, layoutOrder)
 		textBox.Position = UDim2.new(0, 0, 0, 16)
 		textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		textBox.BorderSizePixel = 0
-		textBox.Font = RETRO_FONT
 		textBox.PlaceholderText = el.placeholder or ""
 		textBox.Text = ""
 		textBox.TextColor3 = Color3.fromRGB(0, 0, 0)
@@ -336,7 +325,6 @@ function Windows.Create(config)
 	ToggleBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	ToggleBtn.BorderSizePixel = 0
 	ToggleBtn.Text = "  " .. toggleText
-	ToggleBtn.Font = RETRO_FONT_BOLD
 	ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	ToggleBtn.TextSize = 14
 	ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -377,7 +365,6 @@ function Windows.Create(config)
 	TitleText.BackgroundTransparency = 1
 	TitleText.Size = UDim2.new(1, -26, 1, 0)
 	TitleText.Position = UDim2.new(0, 4, 0, 0)
-	TitleText.Font = RETRO_FONT_BOLD
 	TitleText.Text = windowTitle
 	TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 	TitleText.TextSize = 14
@@ -391,7 +378,6 @@ function Windows.Create(config)
 	CloseBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	CloseBtn.BorderSizePixel = 0
 	CloseBtn.Text = "X"
-	CloseBtn.Font = RETRO_FONT_BOLD
 	CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	CloseBtn.TextSize = 10
 	CloseBtn.AutoButtonColor = false
@@ -509,7 +495,6 @@ function Windows.Create(config)
 		TabBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 		TabBtn.BorderSizePixel = 0
 		TabBtn.Text = tabConfig.Name
-		TabBtn.Font = RETRO_FONT
 		TabBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 		TabBtn.TextSize = 13
 		TabBtn.LayoutOrder = index
@@ -605,7 +590,6 @@ function Windows.ShowPopup(config)
 	TitleText.BackgroundTransparency = 1
 	TitleText.Size = UDim2.new(1, -26, 1, 0)
 	TitleText.Position = UDim2.new(0, 6, 0, 0)
-	TitleText.Font = RETRO_FONT_BOLD
 	TitleText.Text = title
 	TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 	TitleText.TextSize = 14
@@ -623,7 +607,6 @@ function Windows.ShowPopup(config)
 	CloseBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	CloseBtn.BorderSizePixel = 0
 	CloseBtn.Text = "X"
-	CloseBtn.Font = RETRO_FONT_BOLD
 	CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	CloseBtn.TextSize = 10
 	CloseBtn.AutoButtonColor = false
@@ -642,7 +625,6 @@ function Windows.ShowPopup(config)
 	IconLabel.Size = UDim2.new(0, 32, 0, 32)
 	IconLabel.Position = UDim2.new(0, 16, 0, 40)
 	IconLabel.BackgroundTransparency = 1
-	IconLabel.Font = Enum.Font.SourceSansBold
 	IconLabel.TextSize = 24
 
 	if iconType == "error" then
@@ -661,7 +643,6 @@ function Windows.ShowPopup(config)
 	MsgText.Size = UDim2.new(1, -70, 0, 45)
 	MsgText.Position = UDim2.new(0, 60, 0, 35)
 	MsgText.BackgroundTransparency = 1
-	MsgText.Font = RETRO_FONT
 	MsgText.TextColor3 = Color3.fromRGB(0, 0, 0)
 	MsgText.TextSize = 14
 	MsgText.TextWrapped = true
@@ -691,7 +672,6 @@ function Windows.ShowPopup(config)
 		btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 		btn.BorderSizePixel = 0
 		btn.Text = btnText
-		btn.Font = RETRO_FONT
 		btn.TextColor3 = Color3.fromRGB(0, 0, 0)
 		btn.TextSize = 14
 		btn.AutoButtonColor = false
