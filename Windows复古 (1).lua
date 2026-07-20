@@ -4,6 +4,33 @@ local UserInputService = game:GetService("UserInputService")
 local Windows = {}
 
 -- =============================================================================
+-- 【安全字体检测】优先 Fixedsys，其次 Courier，最后默认 SourceSans 确保绝对不报错
+-- =============================================================================
+local RETRO_FONT = Enum.Font.SourceSans
+local RETRO_FONT_BOLD = Enum.Font.SourceSansBold
+
+local function detectFonts()
+	-- 尝试 Fixedsys (Win98 经典像素字体)
+	local successFixedsys = pcall(function()
+		local _ = Enum.Font.Fixedsys
+	end)
+	if successFixedsys then
+		RETRO_FONT = Enum.Font.Fixedsys
+		return
+	end
+
+	-- 尝试 Courier (经典的等宽复古终端/代码字体)
+	local successCourier = pcall(function()
+		local _ = Enum.Font.Courier
+	end)
+	if successCourier then
+		RETRO_FONT = Enum.Font.Courier
+		return
+	end
+end
+detectFonts()
+
+-- =============================================================================
 -- 辅助函数：Win98 经典 3D 凸起/凹陷边框
 -- =============================================================================
 local function add3DBorder(parent, isInset)
@@ -100,7 +127,7 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- =============================================================================
--- 核心组件渲染：支持各种原子组件
+-- 核心组件渲染
 -- =============================================================================
 local function createSingleElement(el, parent, layoutOrder)
 	if el.type == "section" then
@@ -109,6 +136,7 @@ local function createSingleElement(el, parent, layoutOrder)
 		section.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
 		section.BorderSizePixel = 0
 		section.Text = "  " .. el.text
+		section.Font = RETRO_FONT_BOLD
 		section.TextColor3 = Color3.fromRGB(255, 255, 255)
 		section.TextSize = 13
 		section.TextXAlignment = Enum.TextXAlignment.Left
@@ -122,6 +150,7 @@ local function createSingleElement(el, parent, layoutOrder)
 		btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 		btn.BorderSizePixel = 0
 		btn.Text = el.text or "Button"
+		btn.Font = RETRO_FONT
 		btn.TextColor3 = Color3.fromRGB(0, 0, 0)
 		btn.TextSize = 14
 		btn.AutoButtonColor = false
@@ -157,6 +186,7 @@ local function createSingleElement(el, parent, layoutOrder)
 		checkMark.BackgroundTransparency = 1
 		checkMark.Text = "✓"
 		checkMark.TextColor3 = Color3.fromRGB(0, 0, 0)
+		checkMark.Font = RETRO_FONT_BOLD
 		checkMark.TextSize = 12
 		checkMark.Visible = el.default or false
 		checkMark.Parent = checkbox
@@ -166,6 +196,7 @@ local function createSingleElement(el, parent, layoutOrder)
 		label.Position = UDim2.new(0, 22, 0, 0)
 		label.BackgroundTransparency = 1
 		label.Text = el.text or "Checkbox"
+		label.Font = RETRO_FONT
 		label.TextColor3 = Color3.fromRGB(0, 0, 0)
 		label.TextSize = 14
 		label.TextXAlignment = Enum.TextXAlignment.Left
@@ -202,6 +233,7 @@ local function createSingleElement(el, parent, layoutOrder)
 		label.Size = UDim2.new(1, 0, 0, 14)
 		label.BackgroundTransparency = 1
 		label.Text = (el.text or "Slider") .. ": " .. tostring(currentVal)
+		label.Font = RETRO_FONT
 		label.TextColor3 = Color3.fromRGB(0, 0, 0)
 		label.TextSize = 14
 		label.TextXAlignment = Enum.TextXAlignment.Left
@@ -268,6 +300,7 @@ local function createSingleElement(el, parent, layoutOrder)
 		label.Size = UDim2.new(1, 0, 0, 14)
 		label.BackgroundTransparency = 1
 		label.Text = el.text or "Input"
+		label.Font = RETRO_FONT
 		label.TextColor3 = Color3.fromRGB(0, 0, 0)
 		label.TextSize = 14
 		label.TextXAlignment = Enum.TextXAlignment.Left
@@ -278,6 +311,7 @@ local function createSingleElement(el, parent, layoutOrder)
 		textBox.Position = UDim2.new(0, 0, 0, 16)
 		textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		textBox.BorderSizePixel = 0
+		textBox.Font = RETRO_FONT
 		textBox.PlaceholderText = el.placeholder or ""
 		textBox.Text = ""
 		textBox.TextColor3 = Color3.fromRGB(0, 0, 0)
@@ -306,7 +340,6 @@ function Windows.Create(config)
 	local windowTitle = config.Title or "Windows 98"
 	local toggleText = config.ToggleText or "Start"
 	
-	-- 横向扩展配置：支持 Width (默认 260) 和 Height (默认 340)
 	local winWidth = config.Width or 260
 	local winHeight = config.Height or 340
 
@@ -317,7 +350,7 @@ function Windows.Create(config)
 	Main.Parent = game.CoreGui
 	Main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	--桌面 Start 按钮
+	-- 桌面 Start 按钮
 	local ToggleBtn = Instance.new("TextButton")
 	ToggleBtn.Parent = Main
 	ToggleBtn.Size = UDim2.new(0, 100, 0, 32)
@@ -325,6 +358,7 @@ function Windows.Create(config)
 	ToggleBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	ToggleBtn.BorderSizePixel = 0
 	ToggleBtn.Text = "  " .. toggleText
+	ToggleBtn.Font = RETRO_FONT_BOLD
 	ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	ToggleBtn.TextSize = 14
 	ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
@@ -335,7 +369,7 @@ function Windows.Create(config)
 	ToggleBtn.MouseButton1Down:Connect(function() updateStartBorder(true) end)
 	ToggleBtn.MouseButton1Up:Connect(function() updateStartBorder(false) end)
 
-	--主窗口框架
+	-- 主窗口框架
 	local MainGui = Instance.new("Frame")
 	MainGui.Parent = Main
 	MainGui.Size = UDim2.new(0, winWidth, 0, winHeight)
@@ -345,7 +379,7 @@ function Windows.Create(config)
 	MainGui.Visible = false
 	add3DBorder(MainGui, false)
 
-	--标题栏
+	-- 标题栏
 	local TitleBar = Instance.new("Frame")
 	TitleBar.Parent = MainGui
 	TitleBar.Size = UDim2.new(1, -6, 0, 22)
@@ -365,12 +399,13 @@ function Windows.Create(config)
 	TitleText.BackgroundTransparency = 1
 	TitleText.Size = UDim2.new(1, -26, 1, 0)
 	TitleText.Position = UDim2.new(0, 4, 0, 0)
+	TitleText.Font = RETRO_FONT_BOLD
 	TitleText.Text = windowTitle
 	TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 	TitleText.TextSize = 14
 	TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
-	--关闭按钮
+	-- 关闭按钮
 	local CloseBtn = Instance.new("TextButton")
 	CloseBtn.Parent = TitleBar
 	CloseBtn.Size = UDim2.new(0, 16, 0, 14)
@@ -378,6 +413,7 @@ function Windows.Create(config)
 	CloseBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	CloseBtn.BorderSizePixel = 0
 	CloseBtn.Text = "X"
+	CloseBtn.Font = RETRO_FONT_BOLD
 	CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	CloseBtn.TextSize = 10
 	CloseBtn.AutoButtonColor = false
@@ -387,7 +423,7 @@ function Windows.Create(config)
 
 	makeDraggable(MainGui, TitleBar)
 
-	--标签按钮栏
+	-- 标签按钮栏
 	local TabBar = Instance.new("Frame")
 	TabBar.Parent = MainGui
 	TabBar.Size = UDim2.new(1, -8, 0, 24)
@@ -400,7 +436,7 @@ function Windows.Create(config)
 	TabList.SortOrder = Enum.SortOrder.LayoutOrder
 	TabList.Padding = UDim.new(0, 2)
 
-	--内容主容器
+	-- 内容主容器
 	local Container = Instance.new("Frame")
 	Container.Parent = MainGui
 	Container.Position = UDim2.new(0, 4, 0, 52)
@@ -441,7 +477,6 @@ function Windows.Create(config)
 
 		for i, el in ipairs(elements) do
 			if el.type == "row" then
-				-- 行排版容器 (支持横向排列多个组件)
 				local rowFrame = Instance.new("Frame")
 				rowFrame.Size = UDim2.new(0.95, 0, 0, el.Height or 36)
 				rowFrame.BackgroundTransparency = 1
@@ -458,7 +493,6 @@ function Windows.Create(config)
 				local subElements = el.elements or {}
 				local count = #subElements
 				for idx, subEl in ipairs(subElements) do
-					-- 自动平均分配宽度，使它们可以横向舒展
 					local cellWidthScale = (1 / count) - 0.01
 					local cell = Instance.new("Frame")
 					cell.Size = UDim2.new(cellWidthScale, 0, 1, 0)
@@ -466,20 +500,18 @@ function Windows.Create(config)
 					cell.LayoutOrder = idx
 					cell.Parent = rowFrame
 
-					-- 在 cell 中绘制单件
 					local created = createSingleElement(subEl, cell, 1)
 					if created then
-						created.Size = UDim2.new(1, 0, 1, 0) -- 强制拉满格子
+						created.Size = UDim2.new(1, 0, 1, 0)
 					end
 				end
 			else
-				-- 正常垂直排列单组件
 				createSingleElement(el, ScrollingFrame, i)
 			end
 		end
 	end
 
-	--构建多 Tab
+	-- 构建多 Tab
 	for index, tabConfig in ipairs(tabsConfig) do
 		local TabContentFrame = Instance.new("Frame")
 		TabContentFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -495,6 +527,7 @@ function Windows.Create(config)
 		TabBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 		TabBtn.BorderSizePixel = 0
 		TabBtn.Text = tabConfig.Name
+		TabBtn.Font = RETRO_FONT
 		TabBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 		TabBtn.TextSize = 13
 		TabBtn.LayoutOrder = index
@@ -519,7 +552,7 @@ function Windows.Create(config)
 		if index == 1 then selectTab() end
 	end
 
-	--展开/隐藏控制
+	-- 展开/隐藏控制
 	local isOpen = false
 	ToggleBtn.MouseButton1Click:Connect(function()
 		isOpen = not isOpen
@@ -552,8 +585,8 @@ end
 function Windows.ShowPopup(config)
 	local title = config.Title or "System Message"
 	local message = config.Message or "An error has occurred."
-	local iconType = config.IconType or "error" -- options: "error", "warning", "info"
-	local buttons = config.Buttons or {"OK"} -- 例如 {"OK"}, {"Yes", "No"}, {"Retry", "Cancel"}
+	local iconType = config.IconType or "error"
+	local buttons = config.Buttons or {"OK"}
 	local callback = config.Callback
 
 	local Main = Instance.new("ScreenGui")
@@ -565,10 +598,10 @@ function Windows.ShowPopup(config)
 	local PopupGui = Instance.new("Frame")
 	PopupGui.Parent = Main
 	PopupGui.Size = UDim2.new(0, 280, 0, 130)
-	PopupGui.Position = UDim2.new(0.5, -140, 0.4, -65) -- 屏幕居中
+	PopupGui.Position = UDim2.new(0.5, -140, 0.4, -65)
 	PopupGui.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	PopupGui.BorderSizePixel = 0
-	add3DBorder(PopupGui, false) -- 凸起
+	add3DBorder(PopupGui, false)
 
 	-- 弹窗标题
 	local TitleBar = Instance.new("Frame")
@@ -590,12 +623,12 @@ function Windows.ShowPopup(config)
 	TitleText.BackgroundTransparency = 1
 	TitleText.Size = UDim2.new(1, -26, 1, 0)
 	TitleText.Position = UDim2.new(0, 6, 0, 0)
+	TitleText.Font = RETRO_FONT_BOLD
 	TitleText.Text = title
 	TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 	TitleText.TextSize = 14
 	TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
-	-- 关闭弹窗函数
 	local function closePopup()
 		Main:Destroy()
 	end
@@ -607,6 +640,7 @@ function Windows.ShowPopup(config)
 	CloseBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	CloseBtn.BorderSizePixel = 0
 	CloseBtn.Text = "X"
+	CloseBtn.Font = RETRO_FONT_BOLD
 	CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	CloseBtn.TextSize = 10
 	CloseBtn.AutoButtonColor = false
@@ -619,22 +653,23 @@ function Windows.ShowPopup(config)
 
 	makeDraggable(PopupGui, TitleBar)
 
-	-- 图标绘制 (经典 Win98 像素图标拟物化)
+	-- 图标绘制
 	local IconLabel = Instance.new("TextLabel")
 	IconLabel.Parent = PopupGui
 	IconLabel.Size = UDim2.new(0, 32, 0, 32)
 	IconLabel.Position = UDim2.new(0, 16, 0, 40)
 	IconLabel.BackgroundTransparency = 1
+	IconLabel.Font = Enum.Font.SourceSansBold
 	IconLabel.TextSize = 24
 
 	if iconType == "error" then
-		IconLabel.Text = "×"
+		IconLabel.Text = "❌"
 	elseif iconType == "warning" then
-		IconLabel.Text = "!"
+		IconLabel.Text = "⚠️"
 	elseif iconType == "info" then
-		IconLabel.Text = "i"
+		IconLabel.Text = "ℹ️"
 	else
-		IconLabel.Text = "√"
+		IconLabel.Text = "🔔"
 	end
 
 	-- 消息内容
@@ -643,6 +678,7 @@ function Windows.ShowPopup(config)
 	MsgText.Size = UDim2.new(1, -70, 0, 45)
 	MsgText.Position = UDim2.new(0, 60, 0, 35)
 	MsgText.BackgroundTransparency = 1
+	MsgText.Font = RETRO_FONT
 	MsgText.TextColor3 = Color3.fromRGB(0, 0, 0)
 	MsgText.TextSize = 14
 	MsgText.TextWrapped = true
@@ -664,7 +700,6 @@ function Windows.ShowPopup(config)
 	BtnLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	BtnLayout.Padding = UDim.new(0, 10)
 
-	-- 实例化按钮
 	for idx, btnText in ipairs(buttons) do
 		local btn = Instance.new("TextButton")
 		btn.Parent = BtnContainer
@@ -672,6 +707,7 @@ function Windows.ShowPopup(config)
 		btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 		btn.BorderSizePixel = 0
 		btn.Text = btnText
+		btn.Font = RETRO_FONT
 		btn.TextColor3 = Color3.fromRGB(0, 0, 0)
 		btn.TextSize = 14
 		btn.AutoButtonColor = false
