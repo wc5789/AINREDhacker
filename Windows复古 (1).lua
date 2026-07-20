@@ -3,12 +3,14 @@ local UserInputService = game:GetService("UserInputService")
 
 local Windows = {}
 
+-- 默认复古字体：Fixedsys (极其经典的 Win98 像素字体)
+local RETRO_FONT = Enum.Font.Fixedsys
+local RETRO_FONT_BOLD = Enum.Font.SourceSansBold -- 标题栏或加粗用，更清晰易读
+
 -- =============================================================================
--- 辅助函数：Win98 经典 3D 边框绘制（凸起与凹陷效果）
+-- 辅助函数：Win98 经典 3D 凸起/凹陷边框
 -- =============================================================================
 local function add3DBorder(parent, isInset)
-	-- isInset == true (凹陷效果，如输入框、轨道、复选框)
-	-- isInset == false (凸起效果，如窗口、按钮、滑块)
 	local border = Instance.new("Frame")
 	border.Name = "3DBorder"
 	border.Size = UDim2.new(1, 0, 1, 0)
@@ -59,18 +61,15 @@ local function add3DBorder(parent, isInset)
 	end
 
 	setStyle(isInset)
-	return setStyle -- 返回函数，允许动态修改凸起状态（如按键按下）
+	return setStyle
 end
 
 -- =============================================================================
--- 辅助函数：丝滑自定义拖拽算法（替换被废弃的 Draggable）
+-- 辅助函数：自定义拖动
 -- =============================================================================
 local function makeDraggable(frame, dragHandle)
 	dragHandle = dragHandle or frame
-	local dragging
-	local dragInput
-	local dragStart
-	local startPos
+	local dragging, dragInput, dragStart, startPos
 
 	local function update(input)
 		local delta = input.Position - dragStart
@@ -105,48 +104,231 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- =============================================================================
--- 主创建函数
+-- 核心组件渲染：支持各种原子组件
+-- =============================================================================
+local function createSingleElement(el, parent, layoutOrder)
+	if el.type == "section" then
+		local section = Instance.new("TextLabel")
+		section.Size = UDim2.new(0.95, 0, 0, 20)
+		section.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
+		section.BorderSizePixel = 0
+		section.Text = "  " .. el.text
+		section.Font = RETRO_FONT_BOLD
+		section.TextColor3 = Color3.fromRGB(255, 255, 255)
+		section.TextSize = 13
+		section.TextXAlignment = Enum.TextXAlignment.Left
+		section.LayoutOrder = layoutOrder
+		section.Parent = parent
+		return section
+
+	elseif el.type == "button" then
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0.95, 0, 0, 28)
+		btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
+		btn.BorderSizePixel = 0
+		btn.Text = el.text or "Button"
+		btn.Font = RETRO_FONT
+		btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+		btn.TextSize = 14
+		btn.AutoButtonColor = false
+		btn.LayoutOrder = layoutOrder
+		btn.Parent = parent
+
+		local updateBtnBorder = add3DBorder(btn, false)
+
+		btn.MouseButton1Down:Connect(function() updateBtnBorder(true) end)
+		btn.MouseButton1Up:Connect(function()
+			updateBtnBorder(false)
+			if el.callback then el.callback() end
+		end)
+		return btn
+
+	elseif el.type == "toggle" then
+		local toggleFrame = Instance.new("Frame")
+		toggleFrame.Size = UDim2.new(0.95, 0, 0, 20)
+		toggleFrame.BackgroundTransparency = 1
+		toggleFrame.LayoutOrder = layoutOrder
+		toggleFrame.Parent = parent
+
+		local checkbox = Instance.new("Frame")
+		checkbox.Size = UDim2.new(0, 13, 0, 13)
+		checkbox.Position = UDim2.new(0, 4, 0.5, -6)
+		checkbox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		checkbox.BorderSizePixel = 0
+		checkbox.Parent = toggleFrame
+		add3DBorder(checkbox, true)
+
+		local checkMark = Instance.new("TextLabel")
+		checkMark.Size = UDim2.new(1, 0, 1, 0)
+		checkMark.BackgroundTransparency = 1
+		checkMark.Text = "✓"
+		checkMark.TextColor3 = Color3.fromRGB(0, 0, 0)
+		checkMark.Font = RETRO_FONT_BOLD
+		checkMark.TextSize = 12
+		checkMark.Visible = el.default or false
+		checkMark.Parent = checkbox
+
+		local label = Instance.new("TextButton")
+		label.Size = UDim2.new(1, -22, 1, 0)
+		label.Position = UDim2.new(0, 22, 0, 0)
+		label.BackgroundTransparency = 1
+		label.Text = el.text or "Checkbox"
+		label.Font = RETRO_FONT
+		label.TextColor3 = Color3.fromRGB(0, 0, 0)
+		label.TextSize = 14
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.Parent = toggleFrame
+
+		local isChecked = el.default or false
+		local function toggle()
+			isChecked = not isChecked
+			checkMark.Visible = isChecked
+			if el.callback then el.callback(isChecked) end
+		end
+
+		label.MouseButton1Click:Connect(toggle)
+		local innerClick = Instance.new("TextButton")
+		innerClick.Size = UDim2.new(1, 0, 1, 0)
+		innerClick.BackgroundTransparency = 1
+		innerClick.Text = ""
+		innerClick.Parent = checkbox
+		innerClick.MouseButton1Click:Connect(toggle)
+		return toggleFrame
+
+	elseif el.type == "slider" then
+		local sliderFrame = Instance.new("Frame")
+		sliderFrame.Size = UDim2.new(0.95, 0, 0, 36)
+		sliderFrame.BackgroundTransparency = 1
+		sliderFrame.LayoutOrder = layoutOrder
+		sliderFrame.Parent = parent
+
+		local minVal = el.min or 0
+		local maxVal = el.max or 100
+		local currentVal = el.default or minVal
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 0, 14)
+		label.BackgroundTransparency = 1
+		label.Text = (el.text or "Slider") .. ": " .. tostring(currentVal)
+		label.Font = RETRO_FONT
+		label.TextColor3 = Color3.fromRGB(0, 0, 0)
+		label.TextSize = 14
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.Parent = sliderFrame
+
+		local track = Instance.new("Frame")
+		track.Size = UDim2.new(1, -12, 0, 4)
+		track.Position = UDim2.new(0, 6, 0, 22)
+		track.BackgroundColor3 = Color3.fromRGB(128, 128, 128)
+		track.BorderSizePixel = 0
+		track.Parent = sliderFrame
+		add3DBorder(track, true)
+
+		local thumb = Instance.new("TextButton")
+		thumb.Size = UDim2.new(0, 10, 0, 16)
+		thumb.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
+		thumb.BorderSizePixel = 0
+		thumb.Text = ""
+		thumb.Parent = track
+		local updateThumbBorder = add3DBorder(thumb, false)
+
+		local percent = (currentVal - minVal) / (maxVal - minVal)
+		thumb.Position = UDim2.new(percent, -5, 0.5, -8)
+
+		local isDragging = false
+		local function updateSlider(input)
+			local trackWidth = track.AbsoluteSize.X
+			local relativeX = input.Position.X - track.AbsolutePosition.X
+			local percentage = math.clamp(relativeX / trackWidth, 0, 1)
+			thumb.Position = UDim2.new(percentage, -5, 0.5, -8)
+			local exactValue = minVal + percentage * (maxVal - minVal)
+			currentVal = el.precise and (math.round(exactValue * 100) / 100) or math.round(exactValue)
+			label.Text = (el.text or "Slider") .. ": " .. tostring(currentVal)
+			if el.callback then el.callback(currentVal) end
+		end
+
+		thumb.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				isDragging = true
+				updateThumbBorder(true)
+			end
+		end)
+		UserInputService.InputChanged:Connect(function(input)
+			if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+				updateSlider(input)
+			end
+		end)
+		UserInputService.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				isDragging = false
+				updateThumbBorder(false)
+			end
+		end)
+		return sliderFrame
+
+	elseif el.type == "input" then
+		local inputFrame = Instance.new("Frame")
+		inputFrame.Size = UDim2.new(0.95, 0, 0, 36)
+		inputFrame.BackgroundTransparency = 1
+		inputFrame.LayoutOrder = layoutOrder
+		inputFrame.Parent = parent
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, 0, 0, 14)
+		label.BackgroundTransparency = 1
+		label.Text = el.text or "Input"
+		label.Font = RETRO_FONT
+		label.TextColor3 = Color3.fromRGB(0, 0, 0)
+		label.TextSize = 14
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.Parent = inputFrame
+
+		local textBox = Instance.new("TextBox")
+		textBox.Size = UDim2.new(1, 0, 0, 20)
+		textBox.Position = UDim2.new(0, 0, 0, 16)
+		textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		textBox.BorderSizePixel = 0
+		textBox.Font = RETRO_FONT
+		textBox.PlaceholderText = el.placeholder or ""
+		textBox.Text = ""
+		textBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+		textBox.TextSize = 14
+		textBox.ClearTextOnFocus = false
+		textBox.TextXAlignment = Enum.TextXAlignment.Left
+		textBox.Parent = inputFrame
+		add3DBorder(textBox, true)
+
+		local textPadding = Instance.new("UIPadding")
+		textPadding.PaddingLeft = UDim.new(0, 4)
+		textPadding.PaddingRight = UDim.new(0, 4)
+		textPadding.Parent = textBox
+
+		textBox.FocusLost:Connect(function()
+			if el.callback then el.callback(textBox.Text) end
+		end)
+		return inputFrame
+	end
+end
+
+-- =============================================================================
+-- 主创建函数 (支持 Width, Height 横向和纵向自定义配置)
 -- =============================================================================
 function Windows.Create(config)
 	local windowTitle = config.Title or "Windows 98"
 	local toggleText = config.ToggleText or "Start"
 	
-	-- 支持多 Tab 配置，若没有则创建默认 Tab
-	local tabsConfig = config.Tabs
-	if not tabsConfig then
-		tabsConfig = {
-			{
-				Name = "Default",
-				Elements = {}
-			}
-		}
-		-- 向上兼容：如果没有 Tabs 字段，就把原先根目录下的 BUTTONS / INPUTS 放进 Default 标签中
-		if config.BUTTONS then
-			for _, btn in ipairs(config.BUTTONS) do
-				table.insert(tabsConfig[1].Elements, btn)
-			end
-		end
-		if config.INPUTS then
-			for _, inp in ipairs(config.INPUTS) do
-				table.insert(tabsConfig[1].Elements, {
-					type = "input",
-					text = inp.placeholder or "Input",
-					placeholder = inp.placeholder,
-					callback = inp.callback
-				})
-			end
-		end
-	end
+	-- 横向扩展配置：支持 Width (默认 260) 和 Height (默认 340)
+	local winWidth = config.Width or 260
+	local winHeight = config.Height or 340
 
-	-- 主 ScreenGui
+	local tabsConfig = config.Tabs or {{ Name = "Default", Elements = {} }}
+
 	local Main = Instance.new("ScreenGui")
 	Main.Name = "Windows98_GUI"
 	Main.Parent = game.CoreGui
 	Main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	-- =============================================================================
-	-- 桌面开关按钮 (拟物化 Start 按钮)
-	-- =============================================================================
+	--桌面 Start 按钮
 	local ToggleBtn = Instance.new("TextButton")
 	ToggleBtn.Parent = Main
 	ToggleBtn.Size = UDim2.new(0, 100, 0, 32)
@@ -154,37 +336,28 @@ function Windows.Create(config)
 	ToggleBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	ToggleBtn.BorderSizePixel = 0
 	ToggleBtn.Text = "  " .. toggleText
-	ToggleBtn.Font = Enum.Font.SourceSansBold
+	ToggleBtn.Font = RETRO_FONT_BOLD
 	ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	ToggleBtn.TextSize = 14
 	ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
 	ToggleBtn.AutoButtonColor = false
-	ToggleBtn.Active = true
 	makeDraggable(ToggleBtn)
 
 	local updateStartBorder = add3DBorder(ToggleBtn, false)
+	ToggleBtn.MouseButton1Down:Connect(function() updateStartBorder(true) end)
+	ToggleBtn.MouseButton1Up:Connect(function() updateStartBorder(false) end)
 
-	-- 还原 Start 按钮经典交互
-	ToggleBtn.MouseButton1Down:Connect(function()
-		updateStartBorder(true)
-	end)
-	ToggleBtn.MouseButton1Up:Connect(function()
-		updateStartBorder(false)
-	end)
-
-	-- =============================================================================
-	-- 主窗口框架
-	-- =============================================================================
+	--主窗口框架
 	local MainGui = Instance.new("Frame")
 	MainGui.Parent = Main
-	MainGui.Size = UDim2.new(0, 260, 0, 340)
+	MainGui.Size = UDim2.new(0, winWidth, 0, winHeight)
 	MainGui.Position = UDim2.new(0.3, 0, 0.2, 0)
 	MainGui.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	MainGui.BorderSizePixel = 0
 	MainGui.Visible = false
-	add3DBorder(MainGui, false) -- 凸起
+	add3DBorder(MainGui, false)
 
-	-- 标题栏 (含 Windows 经典的渐变蓝底)
+	--标题栏
 	local TitleBar = Instance.new("Frame")
 	TitleBar.Parent = MainGui
 	TitleBar.Size = UDim2.new(1, -6, 0, 22)
@@ -194,8 +367,8 @@ function Windows.Create(config)
 
 	local titleGradient = Instance.new("UIGradient")
 	titleGradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 128)),     -- 经典暗蓝
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 132, 208))  -- 渐变亮蓝
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 128)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 132, 208))
 	})
 	titleGradient.Parent = TitleBar
 
@@ -204,13 +377,13 @@ function Windows.Create(config)
 	TitleText.BackgroundTransparency = 1
 	TitleText.Size = UDim2.new(1, -26, 1, 0)
 	TitleText.Position = UDim2.new(0, 4, 0, 0)
-	TitleText.Font = Enum.Font.SourceSansBold
+	TitleText.Font = RETRO_FONT_BOLD
 	TitleText.Text = windowTitle
 	TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TitleText.TextSize = 13
+	TitleText.TextSize = 14
 	TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
-	-- 关闭按钮
+	--关闭按钮
 	local CloseBtn = Instance.new("TextButton")
 	CloseBtn.Parent = TitleBar
 	CloseBtn.Size = UDim2.new(0, 16, 0, 14)
@@ -218,20 +391,17 @@ function Windows.Create(config)
 	CloseBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 	CloseBtn.BorderSizePixel = 0
 	CloseBtn.Text = "X"
-	CloseBtn.Font = Enum.Font.SourceSansBold
+	CloseBtn.Font = RETRO_FONT_BOLD
 	CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 	CloseBtn.TextSize = 10
 	CloseBtn.AutoButtonColor = false
 	local updateCloseBorder = add3DBorder(CloseBtn, false)
-
 	CloseBtn.MouseButton1Down:Connect(function() updateCloseBorder(true) end)
 	CloseBtn.MouseButton1Up:Connect(function() updateCloseBorder(false) end)
 
 	makeDraggable(MainGui, TitleBar)
 
-	-- =============================================================================
-	-- 标签页 (Tab) 按钮栏
-	-- =============================================================================
+	--标签按钮栏
 	local TabBar = Instance.new("Frame")
 	TabBar.Parent = MainGui
 	TabBar.Size = UDim2.new(1, -8, 0, 24)
@@ -244,22 +414,20 @@ function Windows.Create(config)
 	TabList.SortOrder = Enum.SortOrder.LayoutOrder
 	TabList.Padding = UDim.new(0, 2)
 
-	-- =============================================================================
-	-- 标签内容区
-	-- =============================================================================
+	--内容主容器
 	local Container = Instance.new("Frame")
 	Container.Parent = MainGui
 	Container.Position = UDim2.new(0, 4, 0, 52)
 	Container.Size = UDim2.new(1, -8, 1, -56)
 	Container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	Container.BorderSizePixel = 0
-	add3DBorder(Container, true) -- 凹陷
+	add3DBorder(Container, true)
 
 	local tabFrames = {}
 	local activeTab = nil
 
 	-- =============================================================================
-	-- 组件生成逻辑
+	-- 支持横向/多列排版的渲染核心
 	-- =============================================================================
 	local function renderTabContent(tabConfig, parentFrame)
 		local elements = tabConfig.Elements or {}
@@ -280,236 +448,53 @@ function Windows.Create(config)
 		ListLayout.Padding = UDim.new(0, 8)
 		ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-		-- 内边距
 		local padding = Instance.new("UIPadding")
 		padding.PaddingTop = UDim.new(0, 6)
 		padding.PaddingBottom = UDim.new(0, 6)
 		padding.Parent = ScrollingFrame
 
 		for i, el in ipairs(elements) do
-			if el.type == "section" then
-				-- 分类标题
-				local section = Instance.new("TextLabel")
-				section.Size = UDim2.new(0.95, 0, 0, 20)
-				section.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
-				section.BorderSizePixel = 0
-				section.Text = "  " .. el.text
-				section.Font = Enum.Font.SourceSansBold
-				section.TextColor3 = Color3.fromRGB(255, 255, 255)
-				section.TextSize = 12
-				section.TextXAlignment = Enum.TextXAlignment.Left
-				section.LayoutOrder = i
-				section.Parent = ScrollingFrame
+			if el.type == "row" then
+				-- 行排版容器 (支持横向排列多个组件)
+				local rowFrame = Instance.new("Frame")
+				rowFrame.Size = UDim2.new(0.95, 0, 0, el.Height or 36)
+				rowFrame.BackgroundTransparency = 1
+				rowFrame.LayoutOrder = i
+				rowFrame.Parent = ScrollingFrame
 
-			elseif el.type == "button" or not el.type then
-				-- 标准 3D 按钮
-				local btn = Instance.new("TextButton")
-				btn.Size = UDim2.new(0.95, 0, 0, 28)
-				btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
-				btn.BorderSizePixel = 0
-				btn.Text = el.text or "Button"
-				btn.Font = Enum.Font.SourceSans
-				btn.TextColor3 = Color3.fromRGB(0, 0, 0)
-				btn.TextSize = 13
-				btn.AutoButtonColor = false
-				btn.LayoutOrder = i
-				btn.Parent = ScrollingFrame
+				local rowLayout = Instance.new("UIListLayout")
+				rowLayout.Parent = rowFrame
+				rowLayout.FillDirection = Enum.FillDirection.Horizontal
+				rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+				rowLayout.Padding = UDim.new(0, 6)
+				rowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 
-				local updateBtnBorder = add3DBorder(btn, false)
+				local subElements = el.elements or {}
+				local count = #subElements
+				for idx, subEl in ipairs(subElements) do
+					-- 自动平均分配宽度，使它们可以横向舒展
+					local cellWidthScale = (1 / count) - 0.01
+					local cell = Instance.new("Frame")
+					cell.Size = UDim2.new(cellWidthScale, 0, 1, 0)
+					cell.BackgroundTransparency = 1
+					cell.LayoutOrder = idx
+					cell.Parent = rowFrame
 
-				btn.MouseButton1Down:Connect(function()
-					updateBtnBorder(true)
-				end)
-				btn.MouseButton1Up:Connect(function()
-					updateBtnBorder(false)
-					if el.callback then el.callback() end
-				end)
-
-			elseif el.type == "toggle" then
-				-- 复选框 开关
-				local toggleFrame = Instance.new("Frame")
-				toggleFrame.Size = UDim2.new(0.95, 0, 0, 20)
-				toggleFrame.BackgroundTransparency = 1
-				toggleFrame.LayoutOrder = i
-				toggleFrame.Parent = ScrollingFrame
-
-				local checkbox = Instance.new("Frame")
-				checkbox.Size = UDim2.new(0, 13, 0, 13)
-				checkbox.Position = UDim2.new(0, 4, 0.5, -6)
-				checkbox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				checkbox.BorderSizePixel = 0
-				checkbox.Parent = toggleFrame
-				add3DBorder(checkbox, true) -- 凹陷
-
-				local checkMark = Instance.new("TextLabel")
-				checkMark.Size = UDim2.new(1, 0, 1, 0)
-				checkMark.BackgroundTransparency = 1
-				checkMark.Text = "✓"
-				checkMark.TextColor3 = Color3.fromRGB(0, 0, 0)
-				checkMark.Font = Enum.Font.SourceSansBold
-				checkMark.TextSize = 12
-				checkMark.Visible = el.default or false
-				checkMark.Parent = checkbox
-
-				local label = Instance.new("TextButton")
-				label.Size = UDim2.new(1, -22, 1, 0)
-				label.Position = UDim2.new(0, 22, 0, 0)
-				label.BackgroundTransparency = 1
-				label.Text = el.text or "Checkbox"
-				label.Font = Enum.Font.SourceSans
-				label.TextColor3 = Color3.fromRGB(0, 0, 0)
-				label.TextSize = 13
-				label.TextXAlignment = Enum.TextXAlignment.Left
-				label.Parent = toggleFrame
-
-				local isChecked = el.default or false
-				local function toggle()
-					isChecked = not isChecked
-					checkMark.Visible = isChecked
-					if el.callback then el.callback(isChecked) end
+					-- 在 cell 中绘制单件
+					local created = createSingleElement(subEl, cell, 1)
+					if created then
+						created.Size = UDim2.new(1, 0, 1, 0) -- 强制拉满格子
+					end
 				end
-
-				label.MouseButton1Click:Connect(toggle)
-				
-				local innerClick = Instance.new("TextButton")
-				innerClick.Size = UDim2.new(1, 0, 1, 0)
-				innerClick.BackgroundTransparency = 1
-				innerClick.Text = ""
-				innerClick.Parent = checkbox
-				innerClick.MouseButton1Click:Connect(toggle)
-
-			elseif el.type == "slider" then
-				-- 滑动条
-				local sliderFrame = Instance.new("Frame")
-				sliderFrame.Size = UDim2.new(0.95, 0, 0, 36)
-				sliderFrame.BackgroundTransparency = 1
-				sliderFrame.LayoutOrder = i
-				sliderFrame.Parent = ScrollingFrame
-
-				local minVal = el.min or 0
-				local maxVal = el.max or 100
-				local currentVal = el.default or minVal
-
-				local label = Instance.new("TextLabel")
-				label.Size = UDim2.new(1, 0, 0, 14)
-				label.BackgroundTransparency = 1
-				label.Text = (el.text or "Slider") .. ": " .. tostring(currentVal)
-				label.Font = Enum.Font.SourceSans
-				label.TextColor3 = Color3.fromRGB(0, 0, 0)
-				label.TextSize = 12
-				label.TextXAlignment = Enum.TextXAlignment.Left
-				label.Parent = sliderFrame
-
-				local track = Instance.new("Frame")
-				track.Size = UDim2.new(1, -12, 0, 4)
-				track.Position = UDim2.new(0, 6, 0, 22)
-				track.BackgroundColor3 = Color3.fromRGB(128, 128, 128)
-				track.BorderSizePixel = 0
-				track.Parent = sliderFrame
-				add3DBorder(track, true) -- 凹陷
-
-				local thumb = Instance.new("TextButton")
-				thumb.Size = UDim2.new(0, 10, 0, 16)
-				thumb.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
-				thumb.BorderSizePixel = 0
-				thumb.Text = ""
-				thumb.Parent = track
-				local updateThumbBorder = add3DBorder(thumb, false) -- 凸起
-
-				-- 初始化位置
-				local percent = (currentVal - minVal) / (maxVal - minVal)
-				thumb.Position = UDim2.new(percent, -5, 0.5, -8)
-
-				local isDragging = false
-
-				local function updateSlider(input)
-					local trackWidth = track.AbsoluteSize.X
-					local relativeX = input.Position.X - track.AbsolutePosition.X
-					local percentage = math.clamp(relativeX / trackWidth, 0, 1)
-
-					thumb.Position = UDim2.new(percentage, -5, 0.5, -8)
-
-					local exactValue = minVal + percentage * (maxVal - minVal)
-					if el.precise then
-						currentVal = math.round(exactValue * 100) / 100
-					else
-						currentVal = math.round(exactValue)
-					end
-
-					label.Text = (el.text or "Slider") .. ": " .. tostring(currentVal)
-					if el.callback then el.callback(currentVal) end
-				end
-
-				thumb.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-						isDragging = true
-						updateThumbBorder(true)
-					end
-				end)
-
-				UserInputService.InputChanged:Connect(function(input)
-					if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-						updateSlider(input)
-					end
-				end)
-
-				UserInputService.InputEnded:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-						isDragging = false
-						updateThumbBorder(false)
-					end
-				end)
-
-			elseif el.type == "input" then
-				-- 输入框
-				local inputFrame = Instance.new("Frame")
-				inputFrame.Size = UDim2.new(0.95, 0, 0, 36)
-				inputFrame.BackgroundTransparency = 1
-				inputFrame.LayoutOrder = i
-				inputFrame.Parent = ScrollingFrame
-
-				local label = Instance.new("TextLabel")
-				label.Size = UDim2.new(1, 0, 0, 14)
-				label.BackgroundTransparency = 1
-				label.Text = el.text or "Input"
-				label.Font = Enum.Font.SourceSans
-				label.TextColor3 = Color3.fromRGB(0, 0, 0)
-				label.TextSize = 12
-				label.TextXAlignment = Enum.TextXAlignment.Left
-				label.Parent = inputFrame
-
-				local textBox = Instance.new("TextBox")
-				textBox.Size = UDim2.new(1, 0, 0, 20)
-				textBox.Position = UDim2.new(0, 0, 0, 16)
-				textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				textBox.BorderSizePixel = 0
-				textBox.Font = Enum.Font.SourceSans
-				textBox.PlaceholderText = el.placeholder or ""
-				textBox.Text = ""
-				textBox.TextColor3 = Color3.fromRGB(0, 0, 0)
-				textBox.TextSize = 13
-				textBox.ClearTextOnFocus = false
-				textBox.TextXAlignment = Enum.TextXAlignment.Left
-				textBox.Parent = inputFrame
-				add3DBorder(textBox, true) -- 凹陷
-
-				local textPadding = Instance.new("UIPadding")
-				textPadding.PaddingLeft = UDim.new(0, 4)
-				textPadding.PaddingRight = UDim.new(0, 4)
-				textPadding.Parent = textBox
-
-				textBox.FocusLost:Connect(function()
-					if el.callback then el.callback(textBox.Text) end
-				end)
+			else
+				-- 正常垂直排列单组件
+				createSingleElement(el, ScrollingFrame, i)
 			end
 		end
 	end
 
-	-- =============================================================================
-	-- 多 Tab 页的构建与点击切换
-	-- =============================================================================
+	--构建多 Tab
 	for index, tabConfig in ipairs(tabsConfig) do
-		-- 构建每一个标签页的内容容器
 		local TabContentFrame = Instance.new("Frame")
 		TabContentFrame.Size = UDim2.new(1, 0, 1, 0)
 		TabContentFrame.BackgroundTransparency = 1
@@ -519,15 +504,14 @@ function Windows.Create(config)
 		renderTabContent(tabConfig, TabContentFrame)
 		tabFrames[tabConfig.Name] = TabContentFrame
 
-		-- 创建 Tab 按钮
 		local TabBtn = Instance.new("TextButton")
 		TabBtn.Size = UDim2.new(0, 70, 1, 0)
 		TabBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
 		TabBtn.BorderSizePixel = 0
 		TabBtn.Text = tabConfig.Name
-		TabBtn.Font = Enum.Font.SourceSans
+		TabBtn.Font = RETRO_FONT
 		TabBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-		TabBtn.TextSize = 12
+		TabBtn.TextSize = 13
 		TabBtn.LayoutOrder = index
 		TabBtn.Parent = TabBar
 
@@ -539,7 +523,7 @@ function Windows.Create(config)
 				activeTab.Frame.Visible = false
 			end
 			TabContentFrame.Visible = true
-			updateTabBorder(true) -- 当前选中的看起来呈轻微按压嵌入状态
+			updateTabBorder(true)
 			activeTab = {
 				Frame = TabContentFrame,
 				ButtonUpdate = updateTabBorder
@@ -547,16 +531,10 @@ function Windows.Create(config)
 		end
 
 		TabBtn.MouseButton1Click:Connect(selectTab)
-
-		-- 默认开启第一个标签
-		if index == 1 then
-			selectTab()
-		end
+		if index == 1 then selectTab() end
 	end
 
-	-- =============================================================================
-	-- 基础开关展示控制
-	-- =============================================================================
+	--展开/隐藏控制
 	local isOpen = false
 	ToggleBtn.MouseButton1Click:Connect(function()
 		isOpen = not isOpen
@@ -581,6 +559,153 @@ function Windows.Create(config)
 			ToggleBtn.Text = "  " .. newText
 		end
 	}
+end
+
+-- =============================================================================
+-- 新增方法：Windows.ShowPopup (完美的经典 Win98 系统提示/报错弹窗)
+-- =============================================================================
+function Windows.ShowPopup(config)
+	local title = config.Title or "System Message"
+	local message = config.Message or "An error has occurred."
+	local iconType = config.IconType or "error" -- options: "error", "warning", "info"
+	local buttons = config.Buttons or {"OK"} -- 例如 {"OK"}, {"Yes", "No"}, {"Retry", "Cancel"}
+	local callback = config.Callback
+
+	local Main = Instance.new("ScreenGui")
+	Main.Name = "Windows98_Popup"
+	Main.Parent = game.CoreGui
+	Main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+	-- 弹窗框架
+	local PopupGui = Instance.new("Frame")
+	PopupGui.Parent = Main
+	PopupGui.Size = UDim2.new(0, 280, 0, 130)
+	PopupGui.Position = UDim2.new(0.5, -140, 0.4, -65) -- 屏幕居中
+	PopupGui.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
+	PopupGui.BorderSizePixel = 0
+	add3DBorder(PopupGui, false) -- 凸起
+
+	-- 弹窗标题
+	local TitleBar = Instance.new("Frame")
+	TitleBar.Parent = PopupGui
+	TitleBar.Size = UDim2.new(1, -6, 0, 22)
+	TitleBar.Position = UDim2.new(0, 3, 0, 3)
+	TitleBar.BackgroundColor3 = Color3.fromRGB(0, 0, 128)
+	TitleBar.BorderSizePixel = 0
+
+	local titleGradient = Instance.new("UIGradient")
+	titleGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 128)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 132, 208))
+	})
+	titleGradient.Parent = TitleBar
+
+	local TitleText = Instance.new("TextLabel")
+	TitleText.Parent = TitleBar
+	TitleText.BackgroundTransparency = 1
+	TitleText.Size = UDim2.new(1, -26, 1, 0)
+	TitleText.Position = UDim2.new(0, 6, 0, 0)
+	TitleText.Font = RETRO_FONT_BOLD
+	TitleText.Text = title
+	TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	TitleText.TextSize = 14
+	TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+	-- 关闭弹窗函数
+	local function closePopup()
+		Main:Destroy()
+	end
+
+	local CloseBtn = Instance.new("TextButton")
+	CloseBtn.Parent = TitleBar
+	CloseBtn.Size = UDim2.new(0, 16, 0, 14)
+	CloseBtn.Position = UDim2.new(1, -18, 0.5, -7)
+	CloseBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
+	CloseBtn.BorderSizePixel = 0
+	CloseBtn.Text = "X"
+	CloseBtn.Font = RETRO_FONT_BOLD
+	CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+	CloseBtn.TextSize = 10
+	CloseBtn.AutoButtonColor = false
+	local updateCloseBorder = add3DBorder(CloseBtn, false)
+	CloseBtn.MouseButton1Down:Connect(function() updateCloseBorder(true) end)
+	CloseBtn.MouseButton1Up:Connect(function()
+		updateCloseBorder(false)
+		closePopup()
+	end)
+
+	makeDraggable(PopupGui, TitleBar)
+
+	-- 图标绘制 (经典 Win98 像素图标拟物化)
+	local IconLabel = Instance.new("TextLabel")
+	IconLabel.Parent = PopupGui
+	IconLabel.Size = UDim2.new(0, 32, 0, 32)
+	IconLabel.Position = UDim2.new(0, 16, 0, 40)
+	IconLabel.BackgroundTransparency = 1
+	IconLabel.Font = Enum.Font.SourceSansBold
+	IconLabel.TextSize = 24
+
+	if iconType == "error" then
+		IconLabel.Text = "×"
+	elseif iconType == "warning" then
+		IconLabel.Text = "!"
+	elseif iconType == "info" then
+		IconLabel.Text = "i"
+	else
+		IconLabel.Text = "√"
+	end
+
+	-- 消息内容
+	local MsgText = Instance.new("TextLabel")
+	MsgText.Parent = PopupGui
+	MsgText.Size = UDim2.new(1, -70, 0, 45)
+	MsgText.Position = UDim2.new(0, 60, 0, 35)
+	MsgText.BackgroundTransparency = 1
+	MsgText.Font = RETRO_FONT
+	MsgText.TextColor3 = Color3.fromRGB(0, 0, 0)
+	MsgText.TextSize = 14
+	MsgText.TextWrapped = true
+	MsgText.TextXAlignment = Enum.TextXAlignment.Left
+	MsgText.TextYAlignment = Enum.TextYAlignment.Center
+	MsgText.Text = message
+
+	-- 底部按键框
+	local BtnContainer = Instance.new("Frame")
+	BtnContainer.Parent = PopupGui
+	BtnContainer.Size = UDim2.new(1, 0, 0, 32)
+	BtnContainer.Position = UDim2.new(0, 0, 1, -40)
+	BtnContainer.BackgroundTransparency = 1
+
+	local BtnLayout = Instance.new("UIListLayout")
+	BtnLayout.Parent = BtnContainer
+	BtnLayout.FillDirection = Enum.FillDirection.Horizontal
+	BtnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	BtnLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	BtnLayout.Padding = UDim.new(0, 10)
+
+	-- 实例化按钮
+	for idx, btnText in ipairs(buttons) do
+		local btn = Instance.new("TextButton")
+		btn.Parent = BtnContainer
+		btn.Size = UDim2.new(0, 64, 0, 24)
+		btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
+		btn.BorderSizePixel = 0
+		btn.Text = btnText
+		btn.Font = RETRO_FONT
+		btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+		btn.TextSize = 14
+		btn.AutoButtonColor = false
+		btn.LayoutOrder = idx
+
+		local updateBtnBorder = add3DBorder(btn, false)
+
+		btn.MouseButton1Down:Connect(function() updateBtnBorder(true) end)
+		btn.MouseButton1Up:Connect(function()
+			updateBtnBorder(false)
+			closePopup()
+			if callback then callback(btnText) end
+		end)
+	end
 end
 
 return Windows
