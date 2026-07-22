@@ -4,25 +4,18 @@ local UserInputService = game:GetService("UserInputService")
 local Windows = {}
 
 -- =============================================================================
--- 【安全字体检测】优先 Fixedsys，其次 Courier，最后默认 SourceSans 确保绝对不报错
+-- 【安全字体检测】
 -- =============================================================================
 local RETRO_FONT = Enum.Font.SourceSans
 local RETRO_FONT_BOLD = Enum.Font.SourceSansBold
 
 local function detectFonts()
-	-- 尝试 Fixedsys (Win98 经典像素字体)
-	local successFixedsys = pcall(function()
-		local _ = Enum.Font.Fixedsys
-	end)
+	local successFixedsys = pcall(function() local _ = Enum.Font.Fixedsys end)
 	if successFixedsys then
 		RETRO_FONT = Enum.Font.Fixedsys
 		return
 	end
-
-	-- 尝试 Courier (经典的等宽复古终端/代码字体)
-	local successCourier = pcall(function()
-		local _ = Enum.Font.Courier
-	end)
+	local successCourier = pcall(function() local _ = Enum.Font.Courier end)
 	if successCourier then
 		RETRO_FONT = Enum.Font.Courier
 		return
@@ -31,7 +24,7 @@ end
 detectFonts()
 
 -- =============================================================================
--- 辅助函数：Win98 经典 3D 凸起/凹陷边框
+-- 辅助函数：Win98 经典 3D 凸起/凹陷边框（双层线框，极度拟物）
 -- =============================================================================
 local function add3DBorder(parent, isInset)
 	local border = Instance.new("Frame")
@@ -39,7 +32,7 @@ local function add3DBorder(parent, isInset)
 	border.Size = UDim2.new(1, 0, 1, 0)
 	border.BackgroundTransparency = 1
 	border.BorderSizePixel = 0
-	border.ZIndex = parent.ZIndex + 1
+	border.ZIndex = parent.ZIndex + 2
 	border.Parent = parent
 
 	local top = Instance.new("Frame")
@@ -127,7 +120,7 @@ local function makeDraggable(frame, dragHandle)
 end
 
 -- =============================================================================
--- 核心组件渲染
+-- 单个组件渲染
 -- =============================================================================
 local function createSingleElement(el, parent, layoutOrder)
 	if el.type == "section" then
@@ -290,14 +283,15 @@ local function createSingleElement(el, parent, layoutOrder)
 		return sliderFrame
 
 	elseif el.type == "input" then
+		-- 【修复与重新设计的文本输入框】
 		local inputFrame = Instance.new("Frame")
-		inputFrame.Size = UDim2.new(0.95, 0, 0, 36)
+		inputFrame.Size = UDim2.new(0.95, 0, 0, 42)
 		inputFrame.BackgroundTransparency = 1
 		inputFrame.LayoutOrder = layoutOrder
 		inputFrame.Parent = parent
 
 		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, 0, 0, 14)
+		label.Size = UDim2.new(1, 0, 0, 16)
 		label.BackgroundTransparency = 1
 		label.Text = el.text or "Input"
 		label.Font = RETRO_FONT
@@ -307,8 +301,8 @@ local function createSingleElement(el, parent, layoutOrder)
 		label.Parent = inputFrame
 
 		local textBox = Instance.new("TextBox")
-		textBox.Size = UDim2.new(1, 0, 0, 20)
-		textBox.Position = UDim2.new(0, 0, 0, 16)
+		textBox.Size = UDim2.new(1, 0, 0, 22)
+		textBox.Position = UDim2.new(0, 0, 0, 18)
 		textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 		textBox.BorderSizePixel = 0
 		textBox.Font = RETRO_FONT
@@ -319,11 +313,11 @@ local function createSingleElement(el, parent, layoutOrder)
 		textBox.ClearTextOnFocus = false
 		textBox.TextXAlignment = Enum.TextXAlignment.Left
 		textBox.Parent = inputFrame
-		add3DBorder(textBox, true)
+		add3DBorder(textBox, true) -- 双层凹陷线框
 
 		local textPadding = Instance.new("UIPadding")
-		textPadding.PaddingLeft = UDim.new(0, 4)
-		textPadding.PaddingRight = UDim.new(0, 4)
+		textPadding.PaddingLeft = UDim.new(0, 6)
+		textPadding.PaddingRight = UDim.new(0, 6)
 		textPadding.Parent = textBox
 
 		textBox.FocusLost:Connect(function()
@@ -334,13 +328,13 @@ local function createSingleElement(el, parent, layoutOrder)
 end
 
 -- =============================================================================
--- 主创建函数 (支持 Width, Height 横向和纵向自定义配置)
+-- 主创建函数 (支持 Width, Height 以及拖拽缩放)
 -- =============================================================================
 function Windows.Create(config)
 	local windowTitle = config.Title or "Windows 98"
 	local toggleText = config.ToggleText or "Start"
 	
-	local winWidth = config.Width or 260
+	local winWidth = config.Width or 280
 	local winHeight = config.Height or 340
 
 	local tabsConfig = config.Tabs or {{ Name = "Default", Elements = {} }}
@@ -397,7 +391,7 @@ function Windows.Create(config)
 	local TitleText = Instance.new("TextLabel")
 	TitleText.Parent = TitleBar
 	TitleText.BackgroundTransparency = 1
-	TitleText.Size = UDim2.new(1, -26, 1, 0)
+	TitleText.Size = UDim2.new(1, -65, 1, 0)
 	TitleText.Position = UDim2.new(0, 4, 0, 0)
 	TitleText.Font = RETRO_FONT_BOLD
 	TitleText.Text = windowTitle
@@ -405,25 +399,76 @@ function Windows.Create(config)
 	TitleText.TextSize = 14
 	TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
-	-- 关闭按钮
-	local CloseBtn = Instance.new("TextButton")
-	CloseBtn.Parent = TitleBar
-	CloseBtn.Size = UDim2.new(0, 16, 0, 14)
-	CloseBtn.Position = UDim2.new(1, -18, 0.5, -7)
-	CloseBtn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
-	CloseBtn.BorderSizePixel = 0
-	CloseBtn.Text = "X"
-	CloseBtn.Font = RETRO_FONT_BOLD
-	CloseBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-	CloseBtn.TextSize = 10
-	CloseBtn.AutoButtonColor = false
-	local updateCloseBorder = add3DBorder(CloseBtn, false)
-	CloseBtn.MouseButton1Down:Connect(function() updateCloseBorder(true) end)
-	CloseBtn.MouseButton1Up:Connect(function() updateCloseBorder(false) end)
+	-- =============================================================================
+	-- 右上角三大控制键布局 (最小化, 最大化, 关闭销毁)
+	-- =============================================================================
+	local ControlBox = Instance.new("Frame")
+	ControlBox.Size = UDim2.new(0, 52, 0, 14)
+	ControlBox.Position = UDim2.new(1, -54, 0.5, -7)
+	ControlBox.BackgroundTransparency = 1
+	ControlBox.Parent = TitleBar
+
+	local controlLayout = Instance.new("UIListLayout")
+	controlLayout.FillDirection = Enum.FillDirection.Horizontal
+	controlLayout.Padding = UDim.new(0, 2)
+	controlLayout.Parent = ControlBox
+
+	local function createControlBtn(char, callback)
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0, 16, 1, 0)
+		btn.BackgroundColor3 = Color3.fromRGB(192, 192, 192)
+		btn.BorderSizePixel = 0
+		btn.Text = char
+		btn.Font = RETRO_FONT_BOLD
+		btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+		btn.TextSize = 10
+		btn.AutoButtonColor = false
+		btn.Parent = ControlBox
+		
+		local updateBorder = add3DBorder(btn, false)
+		btn.MouseButton1Down:Connect(function() updateBorder(true) end)
+		btn.MouseButton1Up:Connect(function() 
+			updateBorder(false) 
+			callback()
+		end)
+	end
+
+	-- 1. 最小化 (隐藏)
+	local isMinimized = false
+	createControlBtn("_", function()
+		MainGui.Visible = false
+		isMinimized = true
+	end)
+
+	-- 2. 最大化 (铺满屏幕 / 还原)
+	local isMaximized = false
+	local normalSize = MainGui.Size
+	local normalPos = MainGui.Position
+	createControlBtn("⬜", function()
+		if not isMaximized then
+			-- 记录原本状态
+			normalSize = MainGui.Size
+			normalPos = MainGui.Position
+			-- 最大化
+			MainGui.Size = UDim2.new(1, 0, 1, 0)
+			MainGui.Position = UDim2.new(0, 0, 0, 0)
+			isMaximized = true
+		else
+			-- 恢复
+			MainGui.Size = normalSize
+			MainGui.Position = normalPos
+			isMaximized = false
+		end
+	end)
+
+	-- 3. 关闭 (销毁窗口)
+	createControlBtn("X", function()
+		Main:Destroy()
+	end)
 
 	makeDraggable(MainGui, TitleBar)
 
-	-- 标签按钮栏
+	-- Tab 按钮条
 	local TabBar = Instance.new("Frame")
 	TabBar.Parent = MainGui
 	TabBar.Size = UDim2.new(1, -8, 0, 24)
@@ -436,11 +481,11 @@ function Windows.Create(config)
 	TabList.SortOrder = Enum.SortOrder.LayoutOrder
 	TabList.Padding = UDim.new(0, 2)
 
-	-- 内容主容器
+	-- 内容容器
 	local Container = Instance.new("Frame")
 	Container.Parent = MainGui
 	Container.Position = UDim2.new(0, 4, 0, 52)
-	Container.Size = UDim2.new(1, -8, 1, -56)
+	Container.Size = UDim2.new(1, -8, 1, -62) -- 留出一点底部边距给缩放手柄
 	Container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	Container.BorderSizePixel = 0
 	add3DBorder(Container, true)
@@ -448,9 +493,7 @@ function Windows.Create(config)
 	local tabFrames = {}
 	local activeTab = nil
 
-	-- =============================================================================
-	-- 支持横向/多列排版的渲染核心
-	-- =============================================================================
+	-- 渲染 Tab 内容 (配置了厚重的滚动条)
 	local function renderTabContent(tabConfig, parentFrame)
 		local elements = tabConfig.Elements or {}
 
@@ -460,7 +503,8 @@ function Windows.Create(config)
 		ScrollingFrame.BorderSizePixel = 0
 		ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 		ScrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		ScrollingFrame.ScrollBarThickness = 10
+		-- 【优化滚动条】加宽加厚，完全还原 Win98 机械手感
+		ScrollingFrame.ScrollBarThickness = 16
 		ScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(192, 192, 192)
 		ScrollingFrame.Parent = parentFrame
 
@@ -552,22 +596,58 @@ function Windows.Create(config)
 		if index == 1 then selectTab() end
 	end
 
-	-- 展开/隐藏控制
+	-- =============================================================================
+	-- 【新增：右下角伸缩自如拖拽手柄】
+	-- =============================================================================
+	local ResizeGrip = Instance.new("TextLabel")
+	ResizeGrip.Size = UDim2.new(0, 14, 0, 14)
+	ResizeGrip.Position = UDim2.new(1, -15, 1, -15)
+	ResizeGrip.BackgroundTransparency = 1
+	ResizeGrip.Text = "◢" -- 经典斜条纹像素手柄字符
+	ResizeGrip.Font = RETRO_FONT_BOLD
+	ResizeGrip.TextColor3 = Color3.fromRGB(128, 128, 128)
+	ResizeGrip.TextSize = 14
+	ResizeGrip.ZIndex = MainGui.ZIndex + 10
+	ResizeGrip.Active = true
+	ResizeGrip.Parent = MainGui
+
+	local resizing = false
+	local resizeStartSize = nil
+	local dragStartPos = nil
+
+	ResizeGrip.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			resizing = true
+			dragStartPos = input.Position
+			resizeStartSize = MainGui.Size
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStartPos
+			-- 限制最小宽度为 200，最小高度为 150，防止缩得太小找不着
+			local newWidth = math.max(200, resizeStartSize.X.Offset + delta.X)
+			local newHeight = math.max(150, resizeStartSize.Y.Offset + delta.Y)
+			MainGui.Size = UDim2.new(0, newWidth, 0, newHeight)
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			resizing = false
+		end
+	end)
+
+	-- Start 打开逻辑
 	local isOpen = false
 	ToggleBtn.MouseButton1Click:Connect(function()
 		isOpen = not isOpen
 		if isOpen then
 			MainGui.Visible = true
-			MainGui.BackgroundTransparency = 1
-			TweenService:Create(MainGui, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
 		else
 			MainGui.Visible = false
 		end
-	end)
-
-	CloseBtn.MouseButton1Click:Connect(function()
-		MainGui.Visible = false
-		isOpen = false
 	end)
 
 	return {
@@ -580,7 +660,7 @@ function Windows.Create(config)
 end
 
 -- =============================================================================
--- 新增方法：Windows.ShowPopup (完美的经典 Win98 系统提示/报错弹窗)
+-- 弹出框方法：Windows.ShowPopup
 -- =============================================================================
 function Windows.ShowPopup(config)
 	local title = config.Title or "System Message"
@@ -594,7 +674,6 @@ function Windows.ShowPopup(config)
 	Main.Parent = game.CoreGui
 	Main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	-- 弹窗框架
 	local PopupGui = Instance.new("Frame")
 	PopupGui.Parent = Main
 	PopupGui.Size = UDim2.new(0, 280, 0, 130)
@@ -603,7 +682,6 @@ function Windows.ShowPopup(config)
 	PopupGui.BorderSizePixel = 0
 	add3DBorder(PopupGui, false)
 
-	-- 弹窗标题
 	local TitleBar = Instance.new("Frame")
 	TitleBar.Parent = PopupGui
 	TitleBar.Size = UDim2.new(1, -6, 0, 22)
@@ -653,7 +731,6 @@ function Windows.ShowPopup(config)
 
 	makeDraggable(PopupGui, TitleBar)
 
-	-- 图标绘制
 	local IconLabel = Instance.new("TextLabel")
 	IconLabel.Parent = PopupGui
 	IconLabel.Size = UDim2.new(0, 32, 0, 32)
@@ -672,7 +749,6 @@ function Windows.ShowPopup(config)
 		IconLabel.Text = "🔔"
 	end
 
-	-- 消息内容
 	local MsgText = Instance.new("TextLabel")
 	MsgText.Parent = PopupGui
 	MsgText.Size = UDim2.new(1, -70, 0, 45)
@@ -686,7 +762,6 @@ function Windows.ShowPopup(config)
 	MsgText.TextYAlignment = Enum.TextYAlignment.Center
 	MsgText.Text = message
 
-	-- 底部按键框
 	local BtnContainer = Instance.new("Frame")
 	BtnContainer.Parent = PopupGui
 	BtnContainer.Size = UDim2.new(1, 0, 0, 32)
